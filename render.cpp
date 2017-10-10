@@ -76,6 +76,9 @@ void RenderWidget::paintGL()
    glTranslated(-0.5, -0.5, -0.5);
 
 
+   glPatchParameteri(GL_PATCH_VERTICES, 4);
+
+
    // status
 /*   glColor3f(0, 0, 0);
    renderText(3, curSize.height()-3,

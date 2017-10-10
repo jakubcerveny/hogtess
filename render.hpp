@@ -1,9 +1,6 @@
 #ifndef hogtess_render_hpp_included__
 #define hogtess_render_hpp_included__
 
-//#include <vector>
-//#include <set>
-
 #include <GL/gl.h>
 #include <GL/glu.h>
 
