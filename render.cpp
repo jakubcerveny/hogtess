@@ -7,6 +7,7 @@
 #include <QString>
 
 #include "render.hpp"
+#include "shader.hpp"
 
 const double PanSpeed = 0.005;
 const double RotateSpeed = 0.4;

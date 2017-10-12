@@ -24,8 +24,8 @@ include_directories(${OPENGL_INCLUDE_DIR})
 
 set(hogtess_SOURCES
     render.cpp render.hpp
-#    ncdata.cpp ncdata.hpp
     main.cpp main.hpp
+    shader.hpp
 )
 
 set(hogtess_MOC_HEADERS
