@@ -6,6 +6,8 @@
 
 #include <QString>
 
+#include <glm/glm.hpp>
+
 #include "render.hpp"
 #include "shader.hpp"
 
@@ -77,7 +79,7 @@ void RenderWidget::paintGL()
    glTranslated(-0.5, -0.5, -0.5);
 
 
-   glPatchParameteri(GL_PATCH_VERTICES, 4);
+   //glPatchParameteri(GL_PATCH_VERTICES, 4);
 
 
    // status

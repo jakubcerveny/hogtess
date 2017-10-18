@@ -8,6 +8,8 @@
 #include <QGLWidget>
 #include <QSize>
 
+#include <glm/fwd.hpp>
+
 
 class RenderWidget : public QGLWidget
 {

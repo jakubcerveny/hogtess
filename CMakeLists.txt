@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
+
 project(hogtess)
 
 add_definitions(-std=c++11 -ggdb)
@@ -18,6 +20,8 @@ include(${QT_USE_FILE})
 add_definitions(-DGL_GLEXT_PROTOTYPES=1)
 find_package(OpenGL 4.0 REQUIRED)
 include_directories(${OPENGL_INCLUDE_DIR})
+
+find_package(GLM REQUIRED)
 
 #find_package(Eigen3 3.2 REQUIRED)
 #include_directories(${EIGEN3_INCLUDE_DIR})
