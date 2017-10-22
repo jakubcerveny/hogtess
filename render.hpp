@@ -10,6 +10,8 @@
 
 #include <glm/fwd.hpp>
 
+#include "shader.hpp"
+
 
 class RenderWidget : public QGLWidget
 {
@@ -22,6 +24,10 @@ public:
 
 protected:
 
+   Program progSurface;
+   GLuint buffer;
+
+   void initShaders();
    void loadData();
 
    virtual void initializeGL();

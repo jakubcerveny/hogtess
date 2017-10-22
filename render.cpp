@@ -7,9 +7,12 @@
 #include <QString>
 
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include "render.hpp"
-#include "shader.hpp"
+
+#include "shaders/surface.glsl.hpp"
 
 const double PanSpeed = 0.005;
 const double RotateSpeed = 0.4;
@@ -41,15 +44,32 @@ void RenderWidget::loadData()
 {
 }
 
+void RenderWidget::initShaders()
+{
+   progSurface.link(
+       VertexShader(shaders::surface),
+       FragmentShader(shaders::surface));
+}
+
 void RenderWidget::initializeGL()
 {
-   std::cout << "GL version: " << glGetString(GL_VERSION) << std::endl;
-   std::cout << "GL renderer: " << glGetString(GL_RENDERER) << std::endl;
+   std::cout << "GL version: " << glGetString(GL_VERSION)
+             << ", renderer: " << glGetString(GL_RENDERER) << std::endl;
+
+   initShaders();
 
    glEnable(GL_DEPTH_TEST);
    glEnable(GL_CULL_FACE);
 
    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+   static glm::vec3 vertices[4] = {
+      {0, 0, 0}, {1, 0, 0}, {1, 1, 0}, {0, 1, 0}
+   };
+
+   glGenBuffers(1, &buffer);
+   glBindBuffer(GL_ARRAY_BUFFER, buffer);
+   glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 }
 
 void RenderWidget::resizeGL(int width, int height)
@@ -64,20 +84,34 @@ void RenderWidget::paintGL()
    glClearColor(1, 1, 1, 1);
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-   glMatrixMode(GL_PROJECTION);
-   glLoadIdentity();
-   gluPerspective(45, aspect, 0.001, 100);
-   glMatrixMode(GL_MODELVIEW);
+   glm::mat4 projection = glm::perspective(45.0, aspect, 0.001, 100.0);
 
-   glLoadIdentity();
+   glm::mat4 modelView(1.0);
+   modelView = glm::translate(modelView, glm::vec3(-0.5, -0.5, -0.5));
+
+   glm::mat4 MVP = projection * modelView;
+
+/*   glLoadIdentity();
    glTranslated(PanSpeed*panX, -PanSpeed*panY, -3);
    glRotated(RotateSpeed*rotateY, 1, 0, 0);
    glRotated(RotateSpeed*rotateX, 0, 1, 0);
    double s = std::pow(1.01, -scale);
    glScaled(s, s, s);
    glRotated(-90, 1, 0, 0);
-   glTranslated(-0.5, -0.5, -0.5);
+   glTranslated(-0.5, -0.5, -0.5);*/
 
+   progSurface.use();
+
+   glUniformMatrix4fv(progSurface.uniform("MVP"), 1, GL_FALSE,
+                      glm::value_ptr(MVP));
+
+   GLint aPosition(progSurface.attribute("aPosition"));
+   glEnableVertexAttribArray(aPosition);
+   glVertexAttribPointer(aPosition, 3, GL_FLOAT, GL_FALSE,
+                         sizeof(glm::vec3), (const void*) 0);
+
+   glBindBuffer(GL_ARRAY_BUFFER, buffer);
+   glDrawArrays(GL_QUADS, 0, 4);
 
    //glPatchParameteri(GL_PATCH_VERTICES, 4);
 

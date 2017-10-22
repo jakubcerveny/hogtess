@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.8.3)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
@@ -37,10 +37,13 @@ set(hogtess_MOC_HEADERS
 
 qt4_wrap_cpp(hogtess_MOC_FILES ${hogtess_MOC_HEADERS})
 
+include(cmake/file2cpp.cmake)
+file_to_cpp(hogtess_DATA shaders::surface shaders/surface.glsl)
+
 add_executable(hogtess
     ${hogtess_SOURCES}
     ${hogtess_MOC_FILES}
-#    ${hogtess_DATA}
+    ${hogtess_DATA}
 )
 
 target_link_libraries(hogtess
