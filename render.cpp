@@ -87,6 +87,9 @@ void RenderWidget::paintGL()
    glm::mat4 projection = glm::perspective(45.0, aspect, 0.001, 100.0);
 
    glm::mat4 modelView(1.0);
+   modelView = glm::translate(modelView, glm::vec3(PanSpeed*panX, -PanSpeed*panY, -3));
+   double s = std::pow(1.01, -scale);
+   modelView = glm::scale(modelView, glm::vec3(s, s, s));
    modelView = glm::translate(modelView, glm::vec3(-0.5, -0.5, -0.5));
 
    glm::mat4 MVP = projection * modelView;
