@@ -75,7 +75,6 @@ template<GLenum Kind>
 class Shader
 {
 public:
-
    Shader() {}
 
    template<typename T, int size>
@@ -104,12 +103,15 @@ public:
       return shader_ ? *shader_ : 0;
    }
 
+   bool valid() const {
+      return shader_ != nullptr;
+   }
+
    operator GLuint() const {
       return get();
    }
 
 private:
-
    void load(const void *data, int size)
    {
       shader_ptr shader(new GLuint(0), &Shader::deleter);
@@ -124,6 +126,12 @@ private:
       switch (Kind) {
       case GL_VERTEX_SHADER:
          defs = "#define _VERTEX_ 1\n";
+         break;
+      case GL_TESS_CONTROL_SHADER:
+         defs = "#define _TESS_CONTROL_\n";
+         break;
+      case GL_TESS_EVALUATION_SHADER:
+         defs = "#define _TESS_EVAL_\n";
          break;
       case GL_FRAGMENT_SHADER:
          defs = "#define _FRAGMENT_ 1\n";
@@ -180,8 +188,9 @@ private:
    shader_ptr shader_;
 };
 
-
 typedef Shader<GL_VERTEX_SHADER> VertexShader;
+typedef Shader<GL_TESS_CONTROL_SHADER> TessControlShader;
+typedef Shader<GL_TESS_EVALUATION_SHADER> TessEvalShader;
 typedef Shader<GL_FRAGMENT_SHADER> FragmentShader;
 
 
@@ -212,6 +221,13 @@ public:
    void link(const VertexShader &vs, const FragmentShader &fs
              , const Attributes &attrs = Attributes())
    {
+      link(vs, TessControlShader(), TessEvalShader(), fs, attrs);
+   }
+
+   void link(const VertexShader &vs, const TessControlShader &tcs,
+             const TessEvalShader &tes, const FragmentShader &fs
+             , const Attributes &attrs = Attributes())
+   {
       // create invalid program
       ProgramId id(new GLuint(0), &Program::deleter);
 
@@ -219,8 +235,18 @@ public:
       *id = glCreateProgram();
       if (!*id) throw GLError("cannot create shader");
 
-      glAttachShader(*id, vs);
-      glAttachShader(*id, fs);
+      if (vs.valid()) {
+         glAttachShader(*id, vs);
+      }
+      if (tcs.valid()) {
+         glAttachShader(*id, tcs);
+      }
+      if (tes.valid()) {
+         glAttachShader(*id, tes);
+      }
+      if (fs.valid()) {
+         glAttachShader(*id, fs);
+      }
 
       for (const Attributes::Attr &a : attrs.attrs) {
          glBindAttribLocation(*id, a.first, a.second);
@@ -248,6 +274,8 @@ public:
 
       programId_ = id;
       vs_ = vs;
+      tcs_ = tcs;
+      tes_ = tes;
       fs_ = fs;
    }
 
@@ -292,6 +320,8 @@ private:
    }
 
    VertexShader vs_;
+   TessControlShader tcs_;
+   TessEvalShader tes_;
    FragmentShader fs_;
 
    typedef std::shared_ptr<GLuint> ProgramId;

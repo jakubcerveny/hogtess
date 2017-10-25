@@ -48,13 +48,24 @@ void RenderWidget::initShaders()
 {
    progSurface.link(
        VertexShader(shaders::surface),
+       TessControlShader(shaders::surface),
+       TessEvalShader(shaders::surface),
        FragmentShader(shaders::surface));
 }
 
 void RenderWidget::initializeGL()
 {
-   std::cout << "GL version: " << glGetString(GL_VERSION)
+   std::cout << "OpenGL version: " << glGetString(GL_VERSION)
              << ", renderer: " << glGetString(GL_RENDERER) << std::endl;
+
+   GLint major, minor;
+   glGetIntegerv(GL_MAJOR_VERSION, &major);
+   glGetIntegerv(GL_MINOR_VERSION, &minor);
+
+   if (major < 4) {
+      throw std::runtime_error(
+         "OpenGL version 4.0 or higher required to run this program.");
+   }
 
    initShaders();
 
