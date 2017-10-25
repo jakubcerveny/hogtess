@@ -122,19 +122,21 @@ private:
          throw GLError("cannot create shader");
       }
 
+#define VER "#version 400\n"
+
       const char *defs = "";
       switch (Kind) {
       case GL_VERTEX_SHADER:
-         defs = "#define _VERTEX_ 1\n";
+         defs = VER "#define _VERTEX_ 1\n";
          break;
       case GL_TESS_CONTROL_SHADER:
-         defs = "#define _TESS_CONTROL_\n";
+         defs = VER "#define _TESS_CONTROL_ 1\n";
          break;
       case GL_TESS_EVALUATION_SHADER:
-         defs = "#define _TESS_EVAL_\n";
+         defs = VER "#define _TESS_EVAL_ 1\n";
          break;
       case GL_FRAGMENT_SHADER:
-         defs = "#define _FRAGMENT_ 1\n";
+         defs = VER "#define _FRAGMENT_ 1\n";
          break;
       }
 

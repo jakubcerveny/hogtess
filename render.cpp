@@ -124,10 +124,12 @@ void RenderWidget::paintGL()
    glVertexAttribPointer(aPosition, 3, GL_FLOAT, GL_FALSE,
                          sizeof(glm::vec3), (const void*) 0);
 
-   glBindBuffer(GL_ARRAY_BUFFER, buffer);
-   glDrawArrays(GL_QUADS, 0, 4);
+   /*glBindBuffer(GL_ARRAY_BUFFER, buffer);
+   glDrawArrays(GL_QUADS, 0, 4);*/
 
-   //glPatchParameteri(GL_PATCH_VERTICES, 4);
+   glBindBuffer(GL_ARRAY_BUFFER, buffer);
+   glPatchParameteri(GL_PATCH_VERTICES, 4);
+   glDrawArrays(GL_PATCHES, 0, 4);
 
 
    // status
