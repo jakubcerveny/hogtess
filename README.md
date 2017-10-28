@@ -3,6 +3,8 @@
 Experimental visualization of higher order finite elements using OpenGL 4.0 GPU
 tesselation.
 
+![hogtess](https://raw.githubusercontent.com/jakubcerveny/hogtess/master/data/screenshot.png)
+
 (WORK IN PROGRESS)
 
 ### Troubleshooting
