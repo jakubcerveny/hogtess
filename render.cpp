@@ -16,7 +16,6 @@
 
 const double PanSpeed = 0.005;
 const double RotateSpeed = 0.4;
-//const double BallRadius = 0.005;
 
 
 RenderWidget::RenderWidget()
@@ -31,13 +30,11 @@ RenderWidget::RenderWidget()
   , panX(0.), panY(0.)
 {
    loadData();
-//   ball = gluNewQuadric();
    grabKeyboard();
 }
 
 RenderWidget::~RenderWidget()
 {
-//   gluDeleteQuadric(ball);
 }
 
 void RenderWidget::loadData()
@@ -90,7 +87,6 @@ void RenderWidget::initializeGL()
    glBindBuffer(GL_ARRAY_BUFFER, vbo);
    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), NULL);
 
-   std::cout << "vbo = " << vbo << ", vao = " << vao << std::endl;
 }
 
 void RenderWidget::resizeGL(int width, int height)
