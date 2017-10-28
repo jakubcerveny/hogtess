@@ -1,11 +1,13 @@
 
 #if _VERTEX_
 
-attribute vec3 aPosition;
+in vec3 inPosition;
+
+//uniform mat4 MVP;
 
 void main()
 {
-    gl_Position = vec4(aPosition, 1);
+    gl_Position = vec4(inPosition, 1);
 }
 
 
@@ -13,8 +15,8 @@ void main()
 
 layout(vertices = 4) out;
 
-const float inner = 4.0;
-const float outer = 4.0;
+const float inner = 16.0;
+const float outer = 16.0;
 
 void main()
 {
@@ -52,9 +54,11 @@ void main()
 
 #elif _FRAGMENT_
 
+out vec4 fragColor;
+
 void main()
 {
-    gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    fragColor = vec4(1.0, 0.0, 0.0, 1.0);
 }
 
 #endif
