@@ -1,6 +1,7 @@
 const float PI = 3.141592654;
 
 uniform mat4 MVP;
+uniform vec2 screenSize;
 
 #if _VERTEX_
 
@@ -21,10 +22,11 @@ void main()
     #define ID gl_InvocationID
     gl_out[ID].gl_Position = gl_in[ID].gl_Position;
 
-    vec4 diagonal = MVP*gl_in[2].gl_Position - MVP*gl_in[0].gl_Position;
-    float d = sqrt(dot(diagonal.xy, diagonal.xy)) * 1000 /*FIXME*/;
+    vec4 diag = MVP*gl_in[2].gl_Position - MVP*gl_in[0].gl_Position;
+    diag *= vec4(screenSize * 0.5, 1, 1);
+    float d = sqrt(dot(diag.xy, diag.xy));
 
-    float subdiv = max(d / 70, 1);
+    float subdiv = max(d / 50, 1);
 
     if (ID == 0) {
         gl_TessLevelInner[0] = subdiv;

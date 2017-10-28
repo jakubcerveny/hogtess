@@ -116,6 +116,9 @@ void RenderWidget::paintGL()
    glUniformMatrix4fv(progSurface.uniform("MVP"), 1, GL_FALSE,
                       glm::value_ptr(MVP));
 
+   glUniform2f(progSurface.uniform("screenSize"),
+               curSize.width(), curSize.height());
+
    /*glBindVertexArray(vao);
    glDrawArrays(GL_TRIANGLES, 0, 4);*/
 
