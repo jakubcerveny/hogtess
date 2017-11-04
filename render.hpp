@@ -27,8 +27,9 @@ protected:
    Program progSurface;
    GLuint vbo, vao;
 
-   void initShaders();
+   void compileShaders();
    void loadData();
+   void shapeInit(const Program &prog);
 
    virtual void initializeGL();
    virtual void resizeGL(int width, int height);

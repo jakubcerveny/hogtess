@@ -1,3 +1,4 @@
+#line 2
 const float PI = 3.141592654;
 
 uniform mat4 MVP;
@@ -52,9 +53,12 @@ void main()
     vec4 b = mix(gl_in[2].gl_Position, gl_in[3].gl_Position, u);
     vec4 position = mix(a, b, v);
 
-    position.x += 0.07 * sin(2*PI*v);
-    position.y += 0.07 * sin(2*PI*u);
+    float ushape[P+1], vshape[P+1];
+    lagrange(u, ushape);
+    lagrange(v, vshape);
 
+    position.x += 0.1 * vshape[1];
+    position.y += -0.1 * ushape[3];
 
     gl_Position = MVP * position;
 }

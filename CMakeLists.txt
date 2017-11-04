@@ -36,10 +36,13 @@ set(hogtess_SOURCES
 )
 
 set(hogtess_MOC_HEADERS
-    main.hpp render.hpp)
+    main.hpp
+    render.hpp
+)
 
 qt4_wrap_cpp(hogtess_MOC_FILES ${hogtess_MOC_HEADERS})
 
+file_to_cpp(hogtess_DATA shaders::shape shaders/shape.glsl)
 file_to_cpp(hogtess_DATA shaders::surface shaders/surface.glsl)
 
 add_executable(hogtess
@@ -49,5 +52,6 @@ add_executable(hogtess
 )
 
 target_link_libraries(hogtess
-   ${QT_LIBRARIES} ${OPENGL_LIBRARIES}
+    ${QT_LIBRARIES}
+    ${OPENGL_LIBRARIES}
 )

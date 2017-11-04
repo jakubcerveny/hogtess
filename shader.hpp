@@ -40,7 +40,6 @@ inline std::string fetchGLError(const std::string &def = std::string())
 }
 }
 
-
 struct GLError : public std::runtime_error
 {
    GLError(const std::string &msg)
@@ -61,7 +60,6 @@ inline void checkGLError(const std::string &msg)
    }
 }
 
-
 struct ShaderError : public std::runtime_error {
    ShaderError(const std::string &msg) : std::runtime_error(msg) {}
 };
@@ -71,32 +69,63 @@ struct ProgramError : public std::runtime_error {
 };
 
 
+struct ShaderSource
+{
+   const char* data;
+   int length;
+
+   ShaderSource(const char *src)
+      : data(src), length(strlen(src)) {}
+
+   ShaderSource(const std::string &src)
+      : data(src.data()), length(src.length()) {}
+
+   template<typename T, int size>
+   ShaderSource(const T(&data)[size])
+      : data((const char*) data), length(size) {}
+
+   typedef std::vector<ShaderSource> list;
+};
+
+
+struct Definitions
+{
+   Definitions() {}
+
+   Definitions(const char *name, const char *value) {
+      defs.push_back(Def(name, value));
+   }
+
+   Definitions& operator()(const char *name, const char *value) {
+      defs.push_back(Def(name, value));
+      return *this;
+   }
+
+   typedef std::pair<const char*, const char*> Def;
+   typedef std::vector<Def> DefVector;
+   DefVector defs;
+
+   std::string toString() const
+   {
+      std::string result;
+      for (const auto &pair : defs) {
+         result += std::string("#define ") + pair.first + " " + pair.second + "\n";
+      }
+      return result;
+   }
+};
+
+
 template<GLenum Kind>
 class Shader
 {
 public:
    Shader() {}
 
-   template<typename T, int size>
-   Shader(const T(&data)[size]) {
-      load(data, size * sizeof(T));
-   }
-
-   Shader(const std::string &src) {
-      load(src);
-   }
-
-   Shader(const char *src) {
-      load(src, strlen(src));
-   }
-
-   void load(const std::string &src) {
-      load(src.data(), src.length());
-   }
-
-   template<typename T, int size>
-   void load(const T(&data)[size]) {
-      load(data, size * sizeof(T));
+   Shader(int version, const ShaderSource::list &sources,
+          const Definitions &defs = Definitions())
+   {
+      load(version, sources, defs);
    }
 
    GLuint get() const {
@@ -111,49 +140,32 @@ public:
       return get();
    }
 
-private:
-   void load(const void *data, int size)
+   void load(int version, const ShaderSource::list sources,
+             const Definitions &defs = Definitions())
    {
       shader_ptr shader(new GLuint(0), &Shader::deleter);
 
-      // having valid pointer we can safely create shader
       *shader = glCreateShader(Kind);
       if (!*shader) {
-         throw GLError("cannot create shader");
+         throw GLError(std::string("Cannot create shader ") + glKindName());
       }
 
-#define VER "#version 400\n"
+      std::vector<const GLchar*> strings(sources.size() + 1);
+      std::vector<GLint> lengths(strings.size());
 
-      const char *defs = "";
-      switch (Kind) {
-      case GL_VERTEX_SHADER:
-         defs = VER "#define _VERTEX_ 1\n";
-         break;
-      case GL_TESS_CONTROL_SHADER:
-         defs = VER "#define _TESS_CONTROL_ 1\n";
-         break;
-      case GL_TESS_EVALUATION_SHADER:
-         defs = VER "#define _TESS_EVAL_ 1\n";
-         break;
-      case GL_FRAGMENT_SHADER:
-         defs = VER "#define _FRAGMENT_ 1\n";
-         break;
+      char buf[200];
+      sprintf(buf, "#version %d\n#define %s 1\n", version, glslDefName());
+
+      std::string preamble = std::string(buf) + defs.toString();
+      strings[0] = preamble.data();
+      lengths[0] = preamble.length();
+
+      for (unsigned i = 0; i < sources.size(); i++) {
+         strings[i+1] = sources[i].data;
+         lengths[i+1] = sources[i].length;
       }
 
-      const GLchar* src[2] = {
-         defs,
-         static_cast<const GLchar*>(data),
-      };
-      const GLint len[2] = {
-         -1,
-         size
-      };
-
-      /*for (int i = 0; i < l; i++)
-            std::cout << d[i];*/
-
-      glShaderSource(*shader, GLsizei(2),
-                     (const GLchar**) &src, (const GLint*) &len);
+      glShaderSource(*shader, strings.size(), strings.data(), lengths.data());
 
       glCompileShader(*shader);
 
@@ -170,7 +182,7 @@ private:
 
             glGetShaderInfoLog(*shader, il, 0x0, &log[0]);
             throw ShaderError
-                  (std::string("cannot compile shader: ") + &log[0]);
+                  (std::string("Error compiling shader:\n") + &log[0]);
          }
          throw ShaderError("cannot compile shader");
       }
@@ -179,10 +191,33 @@ private:
       shader_ = shader;
    }
 
+protected:
    static void deleter(const GLuint *s)
    {
       if (s && *s) {
          glDeleteShader(*s);
+      }
+   }
+
+   static const char* glKindName()
+   {
+      switch (Kind) {
+         case GL_VERTEX_SHADER: return "GL_VERTEX_SHADER";
+         case GL_TESS_CONTROL_SHADER: return "GL_TESS_CONTROL_SHADER";
+         case GL_TESS_EVALUATION_SHADER: return "GL_TESS_EVALUATION_SHADER";
+         case GL_FRAGMENT_SHADER: return "GL_FRAGMENT_SHADER";
+         default: return "???";
+      }
+   }
+
+   static const char* glslDefName()
+   {
+      switch (Kind) {
+         case GL_VERTEX_SHADER: return "_VERTEX_";
+         case GL_TESS_CONTROL_SHADER: return "_TESS_CONTROL_";
+         case GL_TESS_EVALUATION_SHADER: return "_TESS_EVAL_";
+         case GL_FRAGMENT_SHADER: return "_FRAGMENT_";
+         default: return "???";
       }
    }
 

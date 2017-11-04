@@ -12,6 +12,7 @@
 
 #include "render.hpp"
 
+#include "shaders/shape.glsl.hpp"
 #include "shaders/surface.glsl.hpp"
 
 const double PanSpeed = 0.005;
@@ -41,13 +42,20 @@ void RenderWidget::loadData()
 {
 }
 
-void RenderWidget::initShaders()
+void RenderWidget::compileShaders()
 {
+   const int version = 400;
+
+   ShaderSource::list surface{
+      shaders::shape,
+      shaders::surface
+   };
+
    progSurface.link(
-       VertexShader(shaders::surface),
-       TessControlShader(shaders::surface),
-       TessEvalShader(shaders::surface),
-       FragmentShader(shaders::surface),
+       VertexShader(version, surface),
+       TessControlShader(version, surface),
+       TessEvalShader(version, surface),
+       FragmentShader(version, surface),
        {0, "inPosition"});
 }
 
@@ -65,7 +73,7 @@ void RenderWidget::initializeGL()
          "OpenGL version 4.0 or higher required to run this program.");
    }
 
-   initShaders();
+   compileShaders();
 
    //glEnable(GL_DEPTH_TEST);
    //glEnable(GL_CULL_FACE);
@@ -96,6 +104,36 @@ void RenderWidget::resizeGL(int width, int height)
    aspect = (double) width / height;
 }
 
+void RenderWidget::shapeInit(const Program &prog)
+{
+   const int P = 4;
+   double nodes[P+1], weights[P+1];
+   float fnodes[P+1], fweights[P+1];
+
+   for (int i = 0; i <= P; i++)
+   {
+      nodes[i] = i / double(P); // FIXME equidistant
+      weights[i] = 1.0;
+   }
+   for (int i = 0; i <= P; i++)
+   {
+      for (int j = 0; j < i; j++)
+      {
+         double xij = nodes[i] - nodes[j];
+         weights[i] *=  xij;
+         weights[j] *= -xij;
+      }
+   }
+   for (int i = 0; i <= P; i++)
+   {
+      fnodes[i] = nodes[i];
+      fweights[i] = 1.0 / weights[i];
+   }
+
+   glUniform1fv(prog.uniform("lagrangeNodes"), P+1, fnodes);
+   glUniform1fv(prog.uniform("lagrangeWeights"), P+1, fweights);
+}
+
 void RenderWidget::paintGL()
 {
    glClearColor(1, 1, 1, 1);
@@ -118,6 +156,8 @@ void RenderWidget::paintGL()
 
    glUniform2f(progSurface.uniform("screenSize"),
                curSize.width(), curSize.height());
+
+   shapeInit(progSurface);
 
    /*glBindVertexArray(vao);
    glDrawArrays(GL_TRIANGLES, 0, 4);*/
