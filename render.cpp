@@ -77,9 +77,7 @@ void RenderWidget::initializeGL()
 
    //glEnable(GL_DEPTH_TEST);
    //glEnable(GL_CULL_FACE);
-   glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
-
-   //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+   glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
    static glm::vec3 vertices[4] = {
       {0, 0, 0}, {1, 0, 0}, {1, 1, 0}, {0, 1, 0}
@@ -95,6 +93,20 @@ void RenderWidget::initializeGL()
    glBindBuffer(GL_ARRAY_BUFFER, vbo);
    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), NULL);
 
+   float texData[1][4][4] = {
+      { {1.0, 0.0, 0.0, 1.0},
+        {0.0, 1.0, 0.0, 1.0},
+        {1.0, 0.0, 0.0, 1.0},
+        {1.0, 0.0, 0.0, 1.0} }
+   };
+
+   glGenTextures(1, &tex);
+   glBindTexture(GL_TEXTURE_RECTANGLE, tex);
+   glTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_RGBA32F, 4, 1,
+                0, GL_RGBA, GL_FLOAT, texData);
+
+   glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+   glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 }
 
 void RenderWidget::resizeGL(int width, int height)
@@ -156,6 +168,10 @@ void RenderWidget::paintGL()
 
    glUniform2f(progSurface.uniform("screenSize"),
                curSize.width(), curSize.height());
+
+   glUniform1i(progSurface.uniform("sampler"), 0);
+   glActiveTexture(GL_TEXTURE0);
+   glBindTexture(GL_TEXTURE_RECTANGLE, tex);
 
    shapeInit(progSurface);
 
