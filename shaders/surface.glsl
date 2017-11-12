@@ -1,8 +1,6 @@
 #line 2
-const float PI = 3.141592654;
 
 uniform mat4 MVP;
-uniform vec2 screenSize;
 
 #if _VERTEX_
 
@@ -17,6 +15,8 @@ void main()
 #elif _TESS_CONTROL_
 
 layout(vertices = 4) out;
+
+uniform vec2 screenSize;
 
 void main()
 {
@@ -44,12 +44,14 @@ void main()
 
 layout(quads) in;
 
+uniform sampler2DRect sampler;
+
 void main()
 {
     float u = gl_TessCoord.x;
     float v = gl_TessCoord.y;
 
-    vec4 a = mix(gl_in[1].gl_Position, gl_in[0].gl_Position, u);
+/*    vec4 a = mix(gl_in[1].gl_Position, gl_in[0].gl_Position, u);
     vec4 b = mix(gl_in[2].gl_Position, gl_in[3].gl_Position, u);
     vec4 position = mix(a, b, v);
 
@@ -58,7 +60,19 @@ void main()
     lagrange(v, vshape);
 
     position.x += 0.1 * vshape[1];
-    position.y += -0.1 * ushape[3];
+    position.y += -0.1 * ushape[3];*/
+
+    float ushape[P+1], vshape[P+1];
+    lagrange(u, ushape);
+    lagrange(v, vshape);
+
+    vec4 position = vec4(0.0);
+    for (int i = 0; i <= P; i++)
+    for (int j = 0; j <= P; j++)
+    {
+        vec4 coef = texture(sampler, ivec2(j, i));
+        position += ushape[i]*vshape[j] * coef;
+    }
 
     gl_Position = MVP * position;
 }
@@ -68,12 +82,10 @@ void main()
 
 out vec4 fragColor;
 
-uniform sampler2DRect sampler;
-
 void main()
 {
-    //fragColor = vec4(0.0, 0.0, 0.0, 1.0);
-    fragColor = texture(sampler, ivec2(1, 0));
+    fragColor = vec4(0.0, 0.0, 0.0, 1.0);
+    //fragColor = texture(sampler, ivec2(1, 0));
 }
 
 #endif

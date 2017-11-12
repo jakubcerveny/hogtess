@@ -59,6 +59,9 @@ void RenderWidget::compileShaders()
        {0, "inPosition"});
 }
 
+
+const int P = 2; // TODO
+
 void RenderWidget::initializeGL()
 {
    std::cout << "OpenGL version: " << glGetString(GL_VERSION)
@@ -93,17 +96,23 @@ void RenderWidget::initializeGL()
    glBindBuffer(GL_ARRAY_BUFFER, vbo);
    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), NULL);
 
-   float texData[1][4][4] = {
-      { {1.0, 0.0, 0.0, 1.0},
-        {0.0, 1.0, 0.0, 1.0},
-        {1.0, 0.0, 0.0, 1.0},
-        {1.0, 0.0, 0.0, 1.0} }
+   static glm::vec4 coefs[P+1][P+1] =
+   {
+      { {0.0, 0.0, 0, 1},
+        {0.5,-0.1, 0, 1},
+        {1.0, 0.0, 0, 1} },
+      { {0.2, 0.5, 0, 1},
+        {0.6, 0.5, 0, 1},
+        {1.1, 0.5, 0, 1} },
+      { {0.0, 1.0, 0, 1},
+        {0.5, 1.0, 0, 1},
+        {1.2, 1.2, 0, 1} }
    };
 
    glGenTextures(1, &tex);
    glBindTexture(GL_TEXTURE_RECTANGLE, tex);
-   glTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_RGBA32F, 4, 1,
-                0, GL_RGBA, GL_FLOAT, texData);
+   glTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_RGBA32F, P+1, P+1,
+                0, GL_RGBA, GL_FLOAT, coefs);
 
    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -118,7 +127,6 @@ void RenderWidget::resizeGL(int width, int height)
 
 void RenderWidget::shapeInit(const Program &prog)
 {
-   const int P = 4;
    double nodes[P+1], weights[P+1];
    float fnodes[P+1], fweights[P+1];
 
