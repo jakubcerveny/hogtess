@@ -5,7 +5,7 @@ uniform float lagrangeNodes[P+1];
 uniform float lagrangeWeights[P+1];
 
 
-void lagrange(float y, out float result[P+1])
+void lagrangeShape(float y, out float result[P+1])
 {
     if (P == 0)
     {
@@ -43,3 +43,21 @@ void lagrange(float y, out float result[P+1])
     }
 }
 
+
+uniform sampler2DRect coefSampler;
+
+vec4 lagrangeQuadSolution(float u, float v)
+{
+    float ushape[P+1], vshape[P+1];
+    lagrangeShape(u, ushape);
+    lagrangeShape(v, vshape);
+
+    vec4 position = vec4(0.0);
+    for (int i = 0; i <= P; i++)
+    for (int j = 0; j <= P; j++)
+    {
+        vec4 coef = texture(coefSampler, ivec2(j, i));
+        position += ushape[i]*vshape[j] * coef;
+    }
+    return position;
+}
