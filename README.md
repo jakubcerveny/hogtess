@@ -7,6 +7,13 @@ tesselation.
 
 (WORK IN PROGRESS)
 
+### Compiling
+
+hogtess needs CMake, Qt4, and GLM:
+```
+$ sudo apt-get install cmake libqt4-dev libglm-dev 
+```
+
 ### Troubleshooting
 
 On some Linux systems, OpenGL 4.0 may not be enabled by default. Try running
