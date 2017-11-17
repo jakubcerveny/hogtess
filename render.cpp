@@ -82,19 +82,7 @@ void RenderWidget::initializeGL()
    //glEnable(GL_CULL_FACE);
    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-   static glm::vec3 vertices[4] = {
-      {0, 0, 0}, {1, 0, 0}, {1, 1, 0}, {0, 1, 0}
-   };
-
-   glGenBuffers(1, &vbo);
-   glBindBuffer(GL_ARRAY_BUFFER, vbo);
-   glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
    glGenVertexArrays(1, &vao);
-   glBindVertexArray(vao);
-   glEnableVertexAttribArray(0);
-   glBindBuffer(GL_ARRAY_BUFFER, vbo);
-   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), NULL);
 
    static glm::vec4 coefs[P+1][P+1] =
    {
@@ -183,18 +171,9 @@ void RenderWidget::paintGL()
 
    shapeInit(progSurface);
 
-   /*glBindVertexArray(vao);
-   glDrawArrays(GL_TRIANGLES, 0, 4);*/
-
    glBindVertexArray(vao);
    glPatchParameteri(GL_PATCH_VERTICES, 4);
    glDrawArrays(GL_PATCHES, 0, 4);
-
-   // status
-/*   glColor3f(0, 0, 0);
-   renderText(3, curSize.height()-3,
-              QString().sprintf("File: %s, Element: %d",
-                                fileNames[curFile].c_str(), curElement));*/
 }
 
 void RenderWidget::mousePressEvent(QMouseEvent *event)

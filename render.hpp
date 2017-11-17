@@ -25,7 +25,7 @@ public:
 protected:
 
    Program progSurface;
-   GLuint vbo, vao, tex;
+   GLuint vao, tex;
 
    void compileShaders();
    void loadData();

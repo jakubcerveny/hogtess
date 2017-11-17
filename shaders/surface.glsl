@@ -62,21 +62,7 @@ layout(quads) in;
 
 void main()
 {
-    float u = gl_TessCoord.x;
-    float v = gl_TessCoord.y;
-
-/*    vec4 a = mix(gl_in[1].gl_Position, gl_in[0].gl_Position, u);
-    vec4 b = mix(gl_in[2].gl_Position, gl_in[3].gl_Position, u);
-    vec4 position = mix(a, b, v);
-
-    float ushape[P+1], vshape[P+1];
-    lagrange(u, ushape);
-    lagrange(v, vshape);
-
-    position.x += 0.1 * vshape[1];
-    position.y += -0.1 * ushape[3];*/
-
-    vec4 position = lagrangeQuadSolution(u, v);
+    vec4 position = lagrangeQuadSolution(gl_TessCoord.x, gl_TessCoord.y);
 
     gl_Position = MVP * position;
 }
