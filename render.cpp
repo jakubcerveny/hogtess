@@ -82,7 +82,7 @@ void RenderWidget::initializeGL()
    //glEnable(GL_CULL_FACE);
    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-   glGenVertexArrays(1, &vao);
+   glGenVertexArrays(1, &vao); // create an empty VAO
 
    static glm::vec4 coefs[P+1][P+1] =
    {
@@ -173,7 +173,7 @@ void RenderWidget::paintGL()
 
    glBindVertexArray(vao);
    glPatchParameteri(GL_PATCH_VERTICES, 4);
-   glDrawArrays(GL_PATCHES, 0, 4);
+   glDrawArrays(GL_PATCHES, 0, 10*4);
 }
 
 void RenderWidget::mousePressEvent(QMouseEvent *event)

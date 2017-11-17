@@ -4,17 +4,20 @@ uniform mat4 MVP;
 
 #if _VERTEX_
 
-in vec3 inPosition;
+out int vElementID;
 
 void main()
 {
-    gl_Position = vec4(inPosition, 1);
+    vElementID = gl_VertexID >> 2;
 }
 
 
 #elif _TESS_CONTROL_
 
 layout(vertices = 4) out;
+
+in int vElementID[];
+out int tcElementID[];
 
 uniform vec2 screenSize;
 
@@ -53,6 +56,7 @@ void main()
         gl_TessLevelInner[1] = (gl_TessLevelOuter[0] + gl_TessLevelOuter[2])*0.5;
         gl_TessLevelInner[0] = (gl_TessLevelOuter[1] + gl_TessLevelOuter[3])*0.5;
     }
+    tcElementID[gl_InvocationID] = vElementID[gl_InvocationID];
 }
 
 
@@ -60,9 +64,13 @@ void main()
 
 layout(quads) in;
 
+in int tcElementID[];
+
 void main()
 {
     vec4 position = lagrangeQuadSolution(gl_TessCoord.x, gl_TessCoord.y);
+
+    position.x += float(tcElementID[0]) * 0.01;
 
     gl_Position = MVP * position;
 }
