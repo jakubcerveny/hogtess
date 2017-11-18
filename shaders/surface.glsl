@@ -30,8 +30,10 @@ void main()
 {
     if (gl_InvocationID == 0)
     {
+        int elemID = vElementID[gl_InvocationID];
+
         vec4 vert[4];
-        vert[0] = lagrangeQuadSolution(0, 0);
+        vert[0] = lagrangeQuadSolution(0, 0); // TODO: use nodal value directly
         vert[1] = lagrangeQuadSolution(1, 0);
         vert[2] = lagrangeQuadSolution(0, 1);
         vert[3] = lagrangeQuadSolution(1, 1);
@@ -55,8 +57,9 @@ void main()
 
         gl_TessLevelInner[1] = (gl_TessLevelOuter[0] + gl_TessLevelOuter[2])*0.5;
         gl_TessLevelInner[0] = (gl_TessLevelOuter[1] + gl_TessLevelOuter[3])*0.5;
+
+        tcElementID[gl_InvocationID] = elemID;
     }
-    tcElementID[gl_InvocationID] = vElementID[gl_InvocationID];
 }
 
 
@@ -68,9 +71,11 @@ in int tcElementID[];
 
 void main()
 {
+    int elemID = tcElementID[0];
+
     vec4 position = lagrangeQuadSolution(gl_TessCoord.x, gl_TessCoord.y);
 
-    position.x += float(tcElementID[0]) * 0.01;
+    position.x += float(elemID) * 0.01;
 
     gl_Position = MVP * position;
 }
@@ -83,7 +88,6 @@ out vec4 fragColor;
 void main()
 {
     fragColor = vec4(0.0, 0.0, 0.0, 1.0);
-    //fragColor = texture(sampler, ivec2(1, 0));
 }
 
 #endif
