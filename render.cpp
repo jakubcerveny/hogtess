@@ -19,7 +19,11 @@ const double PanSpeed = 0.005;
 const double RotateSpeed = 0.4;
 
 
-RenderWidget::RenderWidget()
+RenderWidget::RenderWidget(
+      int numElements, int polyOrder,
+      int meshDim, double *meshCoefs[],
+      int slnDim, double *slnCoefs[])
+
   : QGLWidget((QWidget*) 0)
 
   , rotating(false)
@@ -78,10 +82,6 @@ void RenderWidget::initializeGL()
 
    compileShaders();
 
-   //glEnable(GL_DEPTH_TEST);
-   //glEnable(GL_CULL_FACE);
-   glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
    glGenVertexArrays(1, &vao); // create an empty VAO
 
    static glm::vec4 coefs[P+1][P+1] =
@@ -104,6 +104,10 @@ void RenderWidget::initializeGL()
 
    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+   //glEnable(GL_DEPTH_TEST);
+   //glEnable(GL_CULL_FACE);
+   glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 }
 
 void RenderWidget::resizeGL(int width, int height)

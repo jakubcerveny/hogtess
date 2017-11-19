@@ -18,7 +18,9 @@ class RenderWidget : public QGLWidget
    Q_OBJECT
 
 public:
-   RenderWidget(   );
+   RenderWidget(int numElements, int polyOrder,
+                int meshDim, double* meshCoefs[3],
+                int slnDim, double* slnCoefs[3]);
 
    virtual ~RenderWidget();
 
