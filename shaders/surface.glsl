@@ -23,7 +23,7 @@ uniform vec2 screenSize;
 
 float subdiv(float pixels)
 {
-    return max(pixels / 20, 1);
+    return max(pixels / 10, 1);
 }
 
 void main()
@@ -45,13 +45,15 @@ void main()
             screen[i] = ndc * screenSize * 0.5;
         }
 
-        gl_TessLevelOuter[1] = subdiv(distance(screen[0], screen[1]));
-        gl_TessLevelOuter[2] = subdiv(distance(screen[1], screen[2]));
-        gl_TessLevelOuter[3] = subdiv(distance(screen[2], screen[3]));
-        gl_TessLevelOuter[0] = subdiv(distance(screen[3], screen[0]));
+        // see www.khronos.org/opengl/wiki/Tessellation for the numbering
 
-        gl_TessLevelInner[1] = (gl_TessLevelOuter[0] + gl_TessLevelOuter[2])*0.5;
+        gl_TessLevelOuter[0] = subdiv(distance(screen[2], screen[0]));
+        gl_TessLevelOuter[1] = subdiv(distance(screen[0], screen[1]));
+        gl_TessLevelOuter[2] = subdiv(distance(screen[1], screen[3]));
+        gl_TessLevelOuter[3] = subdiv(distance(screen[3], screen[2]));
+
         gl_TessLevelInner[0] = (gl_TessLevelOuter[1] + gl_TessLevelOuter[3])*0.5;
+        gl_TessLevelInner[1] = (gl_TessLevelOuter[0] + gl_TessLevelOuter[2])*0.5;
 
         tcElementID[gl_InvocationID] = elemID;
     }

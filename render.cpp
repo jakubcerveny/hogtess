@@ -64,8 +64,7 @@ void RenderWidget::compileShaders()
        VertexShader(version, surface),
        TessControlShader(version, surface),
        TessEvalShader(version, surface),
-       FragmentShader(version, surface),
-       {0, "inPosition"});
+       FragmentShader(version, surface));
 }
 
 
@@ -86,19 +85,6 @@ void RenderWidget::initializeGL()
    compileShaders();
 
    glGenVertexArrays(1, &vao); // create an empty VAO
-
-   /*static glm::vec4 coefs[P+1][P+1] =
-   {
-      { {2*0.0, 0.0, 0, 1},
-        {2*0.5,-0.1, 0, 1},
-        {2*1.0, 0.0, 0, 1} },
-      { {2*0.2, 0.5, 0, 1},
-        {2*0.6, 0.5, 0, 1},
-        {2*1.1, 0.5, 0, 1} },
-      { {2*0.0, 1.0, 0, 1},
-        {2*0.5, 1.0, 0, 1},
-        {2*1.2, 1.2, 0, 1} }
-   };*/
 
    int p1 = polyOrder + 1;
    int nc = p1 * p1;
