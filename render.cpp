@@ -19,12 +19,22 @@ const double PanSpeed = 0.005;
 const double RotateSpeed = 0.4;
 
 
-RenderWidget::RenderWidget(
-      int numElements, int polyOrder,
-      int meshDim, double *meshCoefs[],
-      int slnDim, double *slnCoefs[])
+RenderWidget::RenderWidget(const QGLFormat &format,
+      int numElements, int polyOrder, const double *nodes,
+      int meshDim, const double* const* meshCoefs,
+      int slnDim, const double* const* slnCoefs)
 
-  : QGLWidget((QWidget*) 0)
+  : QGLWidget(format, (QWidget*) 0)
+
+  , numElements(numElements)
+  , polyOrder(polyOrder)
+  , nodes(nodes)
+
+  , meshDim(meshDim)
+  , slnDim(slnDim)
+
+  , meshCoefs(meshCoefs)
+  , slnCoefs(slnCoefs)
 
   , rotating(false)
   , scaling(false)
@@ -34,15 +44,10 @@ RenderWidget::RenderWidget(
   , scale(0.)
   , panX(0.), panY(0.)
 {
-   loadData();
    grabKeyboard();
 }
 
 RenderWidget::~RenderWidget()
-{
-}
-
-void RenderWidget::loadData()
 {
 }
 
@@ -64,8 +69,6 @@ void RenderWidget::compileShaders()
 }
 
 
-const int P = 2; // TODO
-
 void RenderWidget::initializeGL()
 {
    std::cout << "OpenGL version: " << glGetString(GL_VERSION)
@@ -84,7 +87,7 @@ void RenderWidget::initializeGL()
 
    glGenVertexArrays(1, &vao); // create an empty VAO
 
-   static glm::vec4 coefs[P+1][P+1] =
+   /*static glm::vec4 coefs[P+1][P+1] =
    {
       { {2*0.0, 0.0, 0, 1},
         {2*0.5,-0.1, 0, 1},
@@ -95,18 +98,39 @@ void RenderWidget::initializeGL()
       { {2*0.0, 1.0, 0, 1},
         {2*0.5, 1.0, 0, 1},
         {2*1.2, 1.2, 0, 1} }
-   };
+   };*/
+
+   int p1 = polyOrder + 1;
+   int nc = p1 * p1;
+
+   glm::vec4 *coefs = new glm::vec4[numElements * nc];
+
+   for (int i = 0; i < numElements; i++)
+   {
+      for (int j = 0; j < nc; j++)
+      {
+         int index = i*nc + j;
+         glm::vec4 &vec = coefs[index];
+         vec.x = meshCoefs[0][index];
+         vec.y = meshCoefs[1][index];
+         vec.z = 0;
+         vec.w = 1;//slnCoefs[0][index];
+      }
+   }
 
    glGenTextures(1, &tex);
    glBindTexture(GL_TEXTURE_RECTANGLE, tex);
-   glTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_RGBA32F, P+1, P+1,
+   glTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_RGBA32F, nc, numElements,
                 0, GL_RGBA, GL_FLOAT, coefs);
+   delete [] coefs;
 
    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
    //glEnable(GL_DEPTH_TEST);
    //glEnable(GL_CULL_FACE);
+   glEnable(GL_MULTISAMPLE);
+
    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 }
 
@@ -119,15 +143,15 @@ void RenderWidget::resizeGL(int width, int height)
 
 void RenderWidget::shapeInit(const Program &prog)
 {
-   double nodes[P+1], weights[P+1];
-   float fnodes[P+1], fweights[P+1];
+   int p1 = polyOrder+1;
+   double weights[p1];
+   float fnodes[p1], fweights[p1];
 
-   for (int i = 0; i <= P; i++)
+   for (int i = 0; i <= polyOrder; i++)
    {
-      nodes[i] = i / double(P); // FIXME equidistant
       weights[i] = 1.0;
    }
-   for (int i = 0; i <= P; i++)
+   for (int i = 0; i <= polyOrder; i++)
    {
       for (int j = 0; j < i; j++)
       {
@@ -136,14 +160,14 @@ void RenderWidget::shapeInit(const Program &prog)
          weights[j] *= -xij;
       }
    }
-   for (int i = 0; i <= P; i++)
+   for (int i = 0; i <= polyOrder; i++)
    {
       fnodes[i] = nodes[i];
       fweights[i] = 1.0 / weights[i];
    }
 
-   glUniform1fv(prog.uniform("lagrangeNodes"), P+1, fnodes);
-   glUniform1fv(prog.uniform("lagrangeWeights"), P+1, fweights);
+   glUniform1fv(prog.uniform("lagrangeNodes"), p1, fnodes);
+   glUniform1fv(prog.uniform("lagrangeWeights"), p1, fweights);
 }
 
 void RenderWidget::paintGL()
@@ -157,7 +181,7 @@ void RenderWidget::paintGL()
    modelView = glm::translate(modelView, glm::vec3(PanSpeed*panX, -PanSpeed*panY, -3));
    double s = std::pow(1.01, -scale);
    modelView = glm::scale(modelView, glm::vec3(s, s, s));
-   modelView = glm::translate(modelView, glm::vec3(-0.5, -0.5, -0.5));
+   //modelView = glm::translate(modelView, glm::vec3(-0.5, -0.5, -0.5));
 
    glm::mat4 MVP = projection * modelView;
 
@@ -177,7 +201,7 @@ void RenderWidget::paintGL()
 
    glBindVertexArray(vao);
    glPatchParameteri(GL_PATCH_VERTICES, 4);
-   glDrawArrays(GL_PATCHES, 0, 10*4);
+   glDrawArrays(GL_PATCHES, 0, 4*numElements);
 }
 
 void RenderWidget::mousePressEvent(QMouseEvent *event)

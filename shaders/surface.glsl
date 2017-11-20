@@ -23,7 +23,7 @@ uniform vec2 screenSize;
 
 float subdiv(float pixels)
 {
-    return max(pixels / 10, 1);
+    return max(pixels / 20, 1);
 }
 
 void main()
@@ -33,10 +33,10 @@ void main()
         int elemID = vElementID[gl_InvocationID];
 
         vec4 vert[4];
-        vert[0] = lagrangeQuadSolution(0, 0); // TODO: use nodal value directly
-        vert[1] = lagrangeQuadSolution(1, 0);
-        vert[2] = lagrangeQuadSolution(0, 1);
-        vert[3] = lagrangeQuadSolution(1, 1);
+        vert[0] = lagrangeQuadSolution(elemID, 0, 0); // TODO: use nodal value directly
+        vert[1] = lagrangeQuadSolution(elemID, 1, 0);
+        vert[2] = lagrangeQuadSolution(elemID, 0, 1);
+        vert[3] = lagrangeQuadSolution(elemID, 1, 1);
 
         vec2 screen[4];
         for (int i = 0; i < 4; i++) {
@@ -45,15 +45,10 @@ void main()
             screen[i] = ndc * screenSize * 0.5;
         }
 
-        vec4 len = vec4(distance(screen[1], screen[0]),
-                        distance(screen[2], screen[1]),
-                        distance(screen[3], screen[2]),
-                        distance(screen[0], screen[3]));
-
-        gl_TessLevelOuter[1] = subdiv(len.x);
-        gl_TessLevelOuter[2] = subdiv(len.y);
-        gl_TessLevelOuter[3] = subdiv(len.z);
-        gl_TessLevelOuter[0] = subdiv(len.w);
+        gl_TessLevelOuter[1] = subdiv(distance(screen[0], screen[1]));
+        gl_TessLevelOuter[2] = subdiv(distance(screen[1], screen[2]));
+        gl_TessLevelOuter[3] = subdiv(distance(screen[2], screen[3]));
+        gl_TessLevelOuter[0] = subdiv(distance(screen[3], screen[0]));
 
         gl_TessLevelInner[1] = (gl_TessLevelOuter[0] + gl_TessLevelOuter[2])*0.5;
         gl_TessLevelInner[0] = (gl_TessLevelOuter[1] + gl_TessLevelOuter[3])*0.5;
@@ -73,9 +68,7 @@ void main()
 {
     int elemID = tcElementID[0];
 
-    vec4 position = lagrangeQuadSolution(gl_TessCoord.x, gl_TessCoord.y);
-
-    position.x += float(elemID) * 0.01;
+    vec4 position = lagrangeQuadSolution(elemID, gl_TessCoord.x, gl_TessCoord.y);
 
     gl_Position = MVP * position;
 }

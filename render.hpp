@@ -18,9 +18,10 @@ class RenderWidget : public QGLWidget
    Q_OBJECT
 
 public:
-   RenderWidget(int numElements, int polyOrder,
-                int meshDim, double* meshCoefs[3],
-                int slnDim, double* slnCoefs[3]);
+   RenderWidget(const QGLFormat &format,
+                int numElements, int polyOrder, const double* nodes,
+                int meshDim, const double* const* meshCoefs,
+                int slnDim, const double* const* slnCoefs);
 
    virtual ~RenderWidget();
 
@@ -30,7 +31,6 @@ protected:
    GLuint vao, tex;
 
    void compileShaders();
-   void loadData();
    void shapeInit(const Program &prog);
 
    virtual void initializeGL();
@@ -41,6 +41,13 @@ protected:
    virtual void mouseMoveEvent(QMouseEvent *event);
    virtual void wheelEvent(QWheelEvent *event);
    virtual void keyPressEvent(QKeyEvent * event);
+
+   int numElements, polyOrder;
+   const double *nodes;
+
+   int meshDim, slnDim;
+   const double* const* meshCoefs;
+   const double* const* slnCoefs;
 
    QSize curSize;
    double aspect;

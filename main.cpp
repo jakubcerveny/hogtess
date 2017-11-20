@@ -77,23 +77,29 @@ int main(int argc, char *argv[])
 
     // TODO: project NURBS or elevate order of Nodes here, if needed
 
-    const mfem::FiniteElement* mesh_fe =
+    const mfem::FiniteElement* meshFE =
           mesh.GetNodes()->FESpace()->FEColl()->FiniteElementForGeometry(geom);
-    const mfem::FiniteElement* sln_fe =
+    const mfem::FiniteElement* slnFE =
           gridfn.FESpace()->FEColl()->FiniteElementForGeometry(geom);
 
-    if (sln_fe->GetDof() != mesh_fe->GetDof()) {
+    if (slnFE->GetDof() != meshFE->GetDof()) {
        std::cout << "Only isoparametric elements supported at the moment.\n";
        return EXIT_FAILURE;
     }
 
-    double* mesh_coefs[3] = {
+    int order = slnFE->GetOrder();
+    std::cout << "Polynomial order: " << order;
+
+    const double* nodes =
+       mfem::poly1d.ClosedPoints(order, mfem::Quadrature1D::GaussLobatto);
+
+    double* meshCoefs[3] = {
        extractPerElementCoefs(*mesh.GetNodes(), 0),
        extractPerElementCoefs(*mesh.GetNodes(), 1),
        NULL
     };
 
-    double* sln_coefs[3] = {
+    double* slnCoefs[3] = {
        extractPerElementCoefs(gridfn, 0),
        NULL,
        NULL
@@ -101,9 +107,13 @@ int main(int argc, char *argv[])
 
     QApplication app(argc, argv);
 
+    QGLFormat glf = QGLFormat::defaultFormat();
+    glf.setSampleBuffers(true);
+    glf.setSamples(8);
+
     RenderWidget* gl =
-         new RenderWidget(mesh.GetNE(), sln_fe->GetOrder(),
-                          2, mesh_coefs, 1, sln_coefs);
+         new RenderWidget(glf, mesh.GetNE(), order, nodes,
+                          2, meshCoefs, 1, slnCoefs);
 
     MainWindow wnd(gl);
     gl->setParent(&wnd);
