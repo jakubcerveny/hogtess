@@ -36,6 +36,7 @@ include_directories(${MFEM_PATH})
 set(hogtess_SOURCES
     render.cpp render.hpp
     main.cpp main.hpp
+    palette.hpp
     shader.hpp
 )
 

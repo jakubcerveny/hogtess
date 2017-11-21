@@ -23,7 +23,7 @@ uniform vec2 screenSize;
 
 float subdiv(float pixels)
 {
-    return max(pixels / 10, 1);
+    return max(pixels / 5, 3);
 }
 
 void main()
@@ -40,7 +40,8 @@ void main()
 
         vec2 screen[4];
         for (int i = 0; i < 4; i++) {
-            vec4 t = MVP * vert[i];
+            vec4 v = vec4(vert[i].xyz, 1);
+            vec4 t = MVP * v;
             vec2 ndc = t.xy / t.w;
             screen[i] = ndc * screenSize * 0.5;
         }
@@ -65,24 +66,35 @@ void main()
 layout(quads) in;
 
 in int tcElementID[];
+out float solution;
 
 void main()
 {
     int elemID = tcElementID[0];
 
-    vec4 position = lagrangeQuadSolution(elemID, gl_TessCoord.x, gl_TessCoord.y);
+    float u = gl_TessCoord.x;
+    float v = gl_TessCoord.y;
+
+    vec4 sln = lagrangeQuadSolution(elemID, u, v);
+    vec4 position = vec4(sln.xyz, 1);
 
     gl_Position = MVP * position;
+    solution = sln.w;
 }
 
 
 #elif _FRAGMENT_
 
+in float solution;
 out vec4 fragColor;
+
+#define PALETTE_SIZE 65
+uniform vec3 palette[PALETTE_SIZE];
 
 void main()
 {
-    fragColor = vec4(0.0, 0.0, 0.0, 1.0);
+    int i = clamp(int(solution * PALETTE_SIZE), 0, PALETTE_SIZE-1);
+    fragColor = vec4(palette[i], 1.0);
 }
 
 #endif

@@ -11,6 +11,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "render.hpp"
+#include "palette.hpp"
 
 #include "shaders/shape.glsl.hpp"
 #include "shaders/surface.glsl.hpp"
@@ -43,6 +44,8 @@ RenderWidget::RenderWidget(const QGLFormat &format,
   , rotateX(0.), rotateY(0.)
   , scale(0.)
   , panX(0.), panY(0.)
+
+  , wireframe(false)
 {
    grabKeyboard();
 }
@@ -84,10 +87,21 @@ void RenderWidget::initializeGL()
 
    compileShaders();
 
-   glGenVertexArrays(1, &vao); // create an empty VAO
-
    int p1 = polyOrder + 1;
    int nc = p1 * p1;
+
+   double min, max;
+   min = std::numeric_limits<double>::max();
+   max = std::numeric_limits<double>::lowest();
+
+   for (int i = 0; i < numElements*nc; i++)
+   {
+      double value = slnCoefs[0][i];
+      min = std::min(value, min);
+      max = std::max(value, max);
+   }
+
+   double normalize = 1.0 / (max - min);
 
    glm::vec4 *coefs = new glm::vec4[numElements * nc];
 
@@ -100,7 +114,7 @@ void RenderWidget::initializeGL()
          vec.x = meshCoefs[0][index];
          vec.y = meshCoefs[1][index];
          vec.z = 0;
-         vec.w = 1;//slnCoefs[0][index];
+         vec.w = (slnCoefs[0][index] - min) * normalize;
       }
    }
 
@@ -113,11 +127,11 @@ void RenderWidget::initializeGL()
    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
-   //glEnable(GL_DEPTH_TEST);
+   glGenVertexArrays(1, &vao); // create an empty VAO
+
+   glEnable(GL_DEPTH_TEST);
    //glEnable(GL_CULL_FACE);
    glEnable(GL_MULTISAMPLE);
-
-   glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 }
 
 void RenderWidget::resizeGL(int width, int height)
@@ -160,6 +174,7 @@ void RenderWidget::paintGL()
 {
    glClearColor(1, 1, 1, 1);
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+   glPolygonMode(GL_FRONT_AND_BACK, wireframe ? GL_LINE : GL_FILL);
 
    glm::mat4 projection = glm::perspective(45.0, aspect, 0.001, 100.0);
 
@@ -182,6 +197,9 @@ void RenderWidget::paintGL()
    glUniform1i(progSurface.uniform("sampler"), 0);
    glActiveTexture(GL_TEXTURE0);
    glBindTexture(GL_TEXTURE_RECTANGLE, tex);
+
+   glUniform3fv(progSurface.uniform("palette"),
+                RGB_Palette_3_Size, (const float*) RGB_Palette_3);
 
    shapeInit(progSurface);
 
@@ -248,7 +266,8 @@ void RenderWidget::keyPressEvent(QKeyEvent * event)
    case Qt::Key_Plus:
       break;
 
-   case Qt::Key_I:
+   case Qt::Key_W:
+      wireframe = !wireframe;
       break;
    }
    updateGL();

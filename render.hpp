@@ -60,6 +60,8 @@ protected:
    double rotateX, rotateY;
    double scale;
    double panX, panY;
+
+   bool wireframe;
 };
 
 

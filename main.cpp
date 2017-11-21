@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
     }
 
     int order = slnFE->GetOrder();
-    std::cout << "Polynomial order: " << order;
+    std::cout << "Polynomial order: " << order << std::endl;
 
     const double* nodes =
        mfem::poly1d.ClosedPoints(order, mfem::Quadrature1D::GaussLobatto);
