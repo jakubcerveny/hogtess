@@ -92,16 +92,18 @@ struct Definitions
 {
    Definitions() {}
 
-   Definitions(const char *name, const char *value) {
+   template<typename A, typename B>
+   Definitions(const A &name, const B &value) {
       defs.push_back(Def(name, value));
    }
 
-   Definitions& operator()(const char *name, const char *value) {
+   template<typename A, typename B>
+   Definitions& operator()(const A &name, const B &value) {
       defs.push_back(Def(name, value));
       return *this;
    }
 
-   typedef std::pair<const char*, const char*> Def;
+   typedef std::pair<std::string, std::string> Def;
    typedef std::vector<Def> DefVector;
    DefVector defs;
 

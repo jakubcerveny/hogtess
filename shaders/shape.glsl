@@ -1,6 +1,4 @@
 
-#define P 4
-
 uniform float lagrangeNodes[P+1];
 uniform float lagrangeWeights[P+1];
 

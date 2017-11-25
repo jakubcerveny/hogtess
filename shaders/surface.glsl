@@ -88,7 +88,6 @@ void main()
 in float solution;
 out vec4 fragColor;
 
-#define PALETTE_SIZE 65
 uniform vec3 palette[PALETTE_SIZE];
 
 void main()

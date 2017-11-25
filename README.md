@@ -9,7 +9,7 @@ tesselation.
 
 ### Compiling
 
-hogtess needs CMake, Qt4, and GLM:
+hogtess shows [MFEM](https://github.com/mfem/mfem) solutions. It also needs CMake, Qt4, and GLM:
 ```
 $ sudo apt-get install cmake libqt4-dev libglm-dev 
 ```
@@ -20,7 +20,7 @@ $ cd hogtess; mkdir build; cd build
 $ cmake ..
 $ cd ..
 $ make -C build
-$ ./build/hogtess data/mesh.000000 data/mode_28.000000
+$ ./build/hogtess data/mesh.4 data/sln.4
 ```
 
 ### Troubleshooting

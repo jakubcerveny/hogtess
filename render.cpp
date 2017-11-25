@@ -58,16 +58,20 @@ void RenderWidget::compileShaders()
 {
    const int version = 400;
 
+   Definitions defs;
+   defs("P", std::to_string(polyOrder))
+       ("PALETTE_SIZE", std::to_string(RGB_Palette_3_Size));
+
    ShaderSource::list surface{
       shaders::shape,
       shaders::surface
    };
 
    progSurface.link(
-       VertexShader(version, surface),
-       TessControlShader(version, surface),
-       TessEvalShader(version, surface),
-       FragmentShader(version, surface));
+       VertexShader(version, surface, defs),
+       TessControlShader(version, surface, defs),
+       TessEvalShader(version, surface, defs),
+       FragmentShader(version, surface, defs));
 }
 
 
