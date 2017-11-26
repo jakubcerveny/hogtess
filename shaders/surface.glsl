@@ -23,7 +23,7 @@ uniform vec2 screenSize;
 
 float subdiv(float pixels)
 {
-    return max(pixels / 5, 3);
+    return max(pixels / 5, P);
 }
 
 void main()
@@ -47,7 +47,6 @@ void main()
         }
 
         // see www.khronos.org/opengl/wiki/Tessellation for the numbering
-
         gl_TessLevelOuter[0] = subdiv(distance(screen[2], screen[0]));
         gl_TessLevelOuter[1] = subdiv(distance(screen[0], screen[1]));
         gl_TessLevelOuter[2] = subdiv(distance(screen[1], screen[3]));
@@ -63,7 +62,7 @@ void main()
 
 #elif _TESS_EVAL_
 
-layout(quads) in;
+layout(quads, fractional_even_spacing) in;
 
 in int tcElementID[];
 out float solution;

@@ -29,6 +29,7 @@ RenderWidget::RenderWidget(const QGLFormat &format,
 
   , numElements(numElements)
   , polyOrder(polyOrder)
+  , elemPack(0)
   , nodes(nodes)
 
   , meshDim(meshDim)
@@ -86,7 +87,7 @@ void RenderWidget::initializeGL()
 
    if (major < 4) {
       throw std::runtime_error(
-         "OpenGL version 4.0 or higher required to run this program.");
+         "OpenGL version 4.0 or higher is required to run this program.");
    }
 
    compileShaders();
@@ -107,14 +108,33 @@ void RenderWidget::initializeGL()
 
    double normalize = 1.0 / (max - min);
 
-   glm::vec4 *coefs = new glm::vec4[numElements * nc];
+   elemPack = 0;
+   while (1) {
+      int width = (1 << (elemPack + 1));
+      if (numElements / width < width) { break; }
+      elemPack++;
+   }
+
+   int width = (1 << elemPack);
+   int height = (numElements + width-1) / width;
+   int mask = width - 1;
+
+   width *= p1;
+   height *= p1;
+
+   glm::vec4 *coefGrid = new glm::vec4[width * height];
 
    for (int i = 0; i < numElements; i++)
    {
+      int ey = (i >> elemPack) * p1;
+      int ex = (i & mask) * p1;
+
       for (int j = 0; j < nc; j++)
       {
+         int cy = j / p1, cx = j % p1;
+         glm::vec4 &vec = coefGrid[(ey + cy)*width + ex + cx];
+
          int index = i*nc + j;
-         glm::vec4 &vec = coefs[index];
          vec.x = meshCoefs[0][index];
          vec.y = meshCoefs[1][index];
          vec.z = 0;
@@ -124,9 +144,10 @@ void RenderWidget::initializeGL()
 
    glGenTextures(1, &tex);
    glBindTexture(GL_TEXTURE_RECTANGLE, tex);
-   glTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_RGBA32F, nc, numElements,
-                0, GL_RGBA, GL_FLOAT, coefs);
-   delete [] coefs;
+   glTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_RGBA32F, width, height,
+                0, GL_RGBA, GL_FLOAT, coefGrid);
+
+   delete [] coefGrid;
 
    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -201,6 +222,8 @@ void RenderWidget::paintGL()
    glUniform1i(progSurface.uniform("sampler"), 0);
    glActiveTexture(GL_TEXTURE0);
    glBindTexture(GL_TEXTURE_RECTANGLE, tex);
+
+   glUniform1i(progSurface.uniform("elemPack"), elemPack);
 
    glUniform3fv(progSurface.uniform("palette"),
                 RGB_Palette_3_Size, (const float*) RGB_Palette_3);

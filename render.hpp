@@ -42,7 +42,7 @@ protected:
    virtual void wheelEvent(QWheelEvent *event);
    virtual void keyPressEvent(QKeyEvent * event);
 
-   int numElements, polyOrder;
+   int numElements, polyOrder, elemPack;
    const double *nodes;
 
    int meshDim, slnDim;

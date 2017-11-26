@@ -43,9 +43,13 @@ void lagrangeShape(float y, out float result[P+1])
 
 
 uniform sampler2DRect coefSampler;
+uniform int elemPack;
 
 vec4 lagrangeQuadSolution(int elemID, float u, float v)
 {
+    int elemY = (elemID >> elemPack) * (P+1);
+    int elemX = (elemID & ((1 << elemPack) - 1)) * (P+1);
+
     float ushape[P+1], vshape[P+1];
     lagrangeShape(u, ushape);
     lagrangeShape(v, vshape);
@@ -54,7 +58,8 @@ vec4 lagrangeQuadSolution(int elemID, float u, float v)
     for (int i = 0; i <= P; i++)
     for (int j = 0; j <= P; j++)
     {
-        vec4 coef = texture(coefSampler, ivec2(i*(P+1) + j, elemID));
+        //vec4 coef = texture(coefSampler, ivec2(i*(P+1) + j, elemID));
+        vec4 coef = texture(coefSampler, ivec2(elemX + j, elemY + i));
         position += ushape[i]*vshape[j] * coef;
     }
     return position;
