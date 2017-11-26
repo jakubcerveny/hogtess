@@ -33,10 +33,10 @@ void main()
         int elemID = vElementID[gl_InvocationID];
 
         vec4 vert[4];
-        vert[0] = lagrangeQuadSolution(elemID, 0, 0); // TODO: use nodal value directly
-        vert[1] = lagrangeQuadSolution(elemID, 1, 0);
-        vert[2] = lagrangeQuadSolution(elemID, 0, 1);
-        vert[3] = lagrangeQuadSolution(elemID, 1, 1);
+        vert[0] = nodalValue(elemID, 0, 0);
+        vert[1] = nodalValue(elemID, P, 0);
+        vert[2] = nodalValue(elemID, 0, P);
+        vert[3] = nodalValue(elemID, P, P);
 
         vec2 screen[4];
         for (int i = 0; i < 4; i++) {
@@ -45,6 +45,8 @@ void main()
             vec2 ndc = t.xy / t.w;
             screen[i] = ndc * screenSize * 0.5;
         }
+
+        // TODO: check if outside the view frustum
 
         // see www.khronos.org/opengl/wiki/Tessellation for the numbering
         gl_TessLevelOuter[0] = subdiv(distance(screen[2], screen[0]));
@@ -62,7 +64,7 @@ void main()
 
 #elif _TESS_EVAL_
 
-layout(quads, fractional_even_spacing) in;
+layout(quads) in;
 
 in int tcElementID[];
 out float solution;

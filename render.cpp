@@ -104,6 +104,7 @@ void RenderWidget::initializeGL()
       double value = slnCoefs[0][i];
       min = std::min(value, min);
       max = std::max(value, max);
+      // FIXME: this is too lazy, the real extremes may not be in the nodes
    }
 
    double normalize = 1.0 / (max - min);
@@ -124,6 +125,7 @@ void RenderWidget::initializeGL()
 
    glm::vec4 *coefGrid = new glm::vec4[width * height];
 
+   // pack elements and coefficients into a rectangular texture
    for (int i = 0; i < numElements; i++)
    {
       int ey = (i >> elemPack) * p1;
@@ -224,6 +226,7 @@ void RenderWidget::paintGL()
    glBindTexture(GL_TEXTURE_RECTANGLE, tex);
 
    glUniform1i(progSurface.uniform("elemPack"), elemPack);
+   glUniform1i(progSurface.uniform("elemMask"), (1 << elemPack) - 1);
 
    glUniform3fv(progSurface.uniform("palette"),
                 RGB_Palette_3_Size, (const float*) RGB_Palette_3);
