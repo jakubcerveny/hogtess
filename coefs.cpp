@@ -1,4 +1,6 @@
 
+#include <fstream>
+
 #include "mfem.hpp"
 #include "coefs.hpp"
 
@@ -23,9 +25,10 @@ void SurfaceCoefs::Extract(const mfem::GridFunction &solution,
       dynamic_cast<const mfem::H1_QuadrilateralElement*>(
          crv_space->FEColl()->FiniteElementForGeometry(mfem::Geometry::SQUARE));
 
-   MFEM_VERIFY(sln_fe != NULL, "Only H1_QuadrilateralElement supported.");
-   MFEM_VERIFY(sln_fe == crv_fe, "Curvature currently must have the same "
-                                 "space as the solution.");
+   MFEM_VERIFY(sln_fe != NULL && crv_fe != NULL,
+               "Only H1_QuadrilateralElement supported at the moment.");
+   MFEM_VERIFY(sln_fe->GetDof() == crv_fe->GetDof(),
+               "Curvature currently must have the same space as the solution.");
 
    ndof = sln_fe->GetDof();
    order = sln_fe->GetOrder();
@@ -40,7 +43,7 @@ void SurfaceCoefs::Extract(const mfem::GridFunction &solution,
    }
 
    mfem::Array<int> dofs, vdofs;
-   std::vector<float> face_coefs(nf * ndof * 4, 0.f);
+   std::vector<float> face_coefs(4*nf*ndof, 0.f);
 
    // extract face coefs
    nf = 0;
@@ -49,7 +52,7 @@ void SurfaceCoefs::Extract(const mfem::GridFunction &solution,
       const mfem::Element* face = mesh->GetFace(i);
       if (face->GetAttribute() <= 0) { continue; }
 
-      float* coefs = &(face_coefs.at((nf++) * ndof * 4));
+      float* coefs = &(face_coefs[4*(nf++)*ndof]);
 
       sln_space->GetFaceDofs(i, dofs);
       MFEM_ASSERT(dofs.Size() == ndof, "");
@@ -68,7 +71,7 @@ void SurfaceCoefs::Extract(const mfem::GridFunction &solution,
       for (int vd = 0; vd < crv_space->GetVDim(); vd++)
       {
          dofs.Copy(vdofs);
-         crv_space->DofsToVDofs(vd, dofs);
+         crv_space->DofsToVDofs(vd, vdofs);
 
          for (int j = 0; j < ndof; j++)
          {
@@ -77,11 +80,31 @@ void SurfaceCoefs::Extract(const mfem::GridFunction &solution,
       }
    }
 
+   // clean up if buffer already exists
+   if (buffer)
+   {
+      glDeleteBuffers(1, &buffer);
+   }
+
    // create a shader buffer
    glGenBuffers(1, &buffer);
    glBindBuffer(GL_SHADER_STORAGE_BUFFER, buffer);
-   glBufferData(GL_SHADER_STORAGE_BUFFER, face_coefs.size() * sizeof(float),
-                face_coefs.data(), GL_STATIC_DRAW);
+   glBufferData(GL_SHADER_STORAGE_BUFFER,
+                face_coefs.size() * sizeof(float),
+                face_coefs.data(), GL_STATIC_COPY);
+   glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+   // debug
+   std::ofstream f("coefs.m");
+   f << "A = [\n";
+   for (int i = 0; i < face_coefs.size()/4; i++)
+   {
+      f << face_coefs[4*i + 0] << " ";
+      f << face_coefs[4*i + 1] << " ";
+      f << face_coefs[4*i + 2] << "\n";
+   }
+   f << "];\n";
+
 }
 
 

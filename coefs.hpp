@@ -14,7 +14,13 @@ namespace mfem { class GridFunction; }
 class SurfaceCoefs
 {
 public:
-   SurfaceCoefs();
+   SurfaceCoefs() : nf(), ndof(), order(), buffer() {}
+
+   SurfaceCoefs(const mfem::GridFunction &solution,
+                const mfem::GridFunction &curvature)
+   {
+      Extract(solution, curvature);
+   }
 
    void Extract(const mfem::GridFunction &solution,
                 const mfem::GridFunction &curvature);
@@ -22,7 +28,12 @@ public:
    int NFaces() const { return nf; }
    int Order() const { return order; }
 
-   void BindBuffer(int location) const {
+   void BindBuffer() const
+   {
+      glBindBuffer(GL_SHADER_STORAGE_BUFFER, buffer);
+   }
+   void BindBufferBase(int location) const
+   {
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, location, buffer);
    }
 
