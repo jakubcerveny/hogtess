@@ -30,12 +30,10 @@ class MFEMSurfaceCoefs : public SurfaceCoefs
 public:
    MFEMSurfaceCoefs() : SurfaceCoefs() {}
 
-   virtual void Extract(const Solution* solution);
+   virtual void Extract(const Solution &solution);
 
    virtual ~MFEMSurfaceCoefs();
 };
-
-
 
 
 #endif // hogtess_input_mfem_hpp_included_

@@ -26,14 +26,14 @@ int main(int argc, char *argv[])
     MFEMSolution solution(argv[1], argv[2]);
 
     MFEMSurfaceCoefs surfaceCoefs;
-    surfaceCoefs.Extract(soltion);
+    surfaceCoefs.Extract(solution);
 
-    const double* nodes =
-       mfem::poly1d.ClosedPoints(order, mfem::Quadrature1D::GaussLobatto);
+    /*const double* nodes =
+       mfem::poly1d.ClosedPoints(order, mfem::Quadrature1D::GaussLobatto);*/
 
-/*    QApplication app(argc, argv);
+    QApplication app(argc, argv);
 
-    QGLFormat glf = QGLFormat::defaultFormat();
+    /*QGLFormat glf = QGLFormat::defaultFormat();
     glf.setSampleBuffers(true);
     glf.setSamples(8);
 
@@ -46,8 +46,7 @@ int main(int argc, char *argv[])
 
     QSize size(1200, 1000);
     wnd.resize(size);
-    wnd.show();
+    wnd.show();*/
 
-    return app.exec();*/
-    return 0;
+    return app.exec();
 }

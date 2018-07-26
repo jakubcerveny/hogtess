@@ -11,7 +11,7 @@ MFEMSolution::MFEMSolution(const std::string &meshPath,
    std::cout << "Loading mesh: " << meshPath << std::endl;
    mesh = new mfem::Mesh(meshPath.c_str());
 
-   int geom = mfem::Geometry::SQUARE;
+   int geom = mfem::Geometry::CUBE;
    MFEM_VERIFY(mesh->Dimension() == 3 || mesh->GetElementBaseGeometry() == geom,
                "Only 3D hexes supported so far, sorry.");
    MFEM_VERIFY(mesh->GetNodes() != NULL,
@@ -44,31 +44,30 @@ MFEMSolution::~MFEMSolution()
 }
 
 
-void MFEMSurfaceCoefs::Extract(const Solution* solution)
+void MFEMSurfaceCoefs::Extract(const Solution &solution)
 {
-   const mfem::Mesh *mesh = solution.FESpace()->GetMesh();
+   const auto *mfem_sln = dynamic_cast<const MFEMSolution*>(&solution);
+   MFEM_VERIFY(mfem_sln, "Not an MFEM solution!");
 
-   MFEM_VERIFY(mesh->Dimension() == 3, "Need a 3D mesh.");
-   MFEM_VERIFY(mesh == curvature.FESpace()->GetMesh(),
-               "Solution and curvature must share the same mesh!");
+   const mfem::Mesh *mesh = mfem_sln->Mesh();
 
-   const mfem::FiniteElementSpace *sln_space = solution.FESpace();
-   const mfem::FiniteElementSpace *crv_space = curvature.FESpace();
+   const mfem::GridFunction *sln = mfem_sln->Solution();
+   const mfem::GridFunction *nodes = mfem_sln->Mesh()->GetNodes();
 
-   const mfem::H1_QuadrilateralElement *sln_fe =
-      dynamic_cast<const mfem::H1_QuadrilateralElement*>(
-         sln_space->FEColl()->FiniteElementForGeometry(mfem::Geometry::SQUARE));
+   const auto *sln_space = sln->FESpace();
+   const auto *nodes_space = nodes->FESpace();
 
-   const mfem::H1_QuadrilateralElement *crv_fe =
-      dynamic_cast<const mfem::H1_QuadrilateralElement*>(
-         crv_space->FEColl()->FiniteElementForGeometry(mfem::Geometry::SQUARE));
+   const auto *sln_fe = dynamic_cast<const mfem::H1_QuadrilateralElement*>(
+      sln_space->FEColl()->FiniteElementForGeometry(mfem::Geometry::SQUARE));
+   const auto *nodes_fe = dynamic_cast<const mfem::H1_QuadrilateralElement*>(
+      nodes_space->FEColl()->FiniteElementForGeometry(mfem::Geometry::SQUARE));
 
-   MFEM_VERIFY(sln_fe != NULL && crv_fe != NULL,
+   MFEM_VERIFY(sln_fe != NULL && nodes_fe != NULL,
                "Only H1_QuadrilateralElement supported at the moment.");
-   MFEM_VERIFY(sln_fe->GetDof() == crv_fe->GetDof(),
+   MFEM_VERIFY(sln_fe->GetDof() == nodes_fe->GetDof(),
                "Curvature currently must have the same space as the solution.");
 
-   ndof = sln_fe->GetDof();
+   int ndof = sln_fe->GetDof();
    order = sln_fe->GetOrder();
 
    const mfem::Array<int> &dof_map = sln_fe->GetDofMap();
@@ -100,20 +99,20 @@ void MFEMSurfaceCoefs::Extract(const Solution* solution)
 
       for (int j = 0; j < ndof; j++)
       {
-         coefs[4*j + 3] = solution(vdofs[dof_map[j]]);
+         coefs[4*j + 3] = (*sln)(vdofs[dof_map[j]]);
       }
 
-      crv_space->GetFaceDofs(i, dofs);
+      nodes_space->GetFaceDofs(i, dofs);
       MFEM_ASSERT(dofs.Size() == ndof, "");
 
-      for (int vd = 0; vd < crv_space->GetVDim(); vd++)
+      for (int vd = 0; vd < nodes_space->GetVDim(); vd++)
       {
          dofs.Copy(vdofs);
-         crv_space->DofsToVDofs(vd, vdofs);
+         nodes_space->DofsToVDofs(vd, vdofs);
 
          for (int j = 0; j < ndof; j++)
          {
-            coefs[4*j + vd] = curvature(vdofs[dof_map[j]]);
+            coefs[4*j + vd] = (*nodes)(vdofs[dof_map[j]]);
          }
       }
    }
@@ -134,7 +133,7 @@ void MFEMSurfaceCoefs::Extract(const Solution* solution)
 }
 
 
-MFEMSurfaceCoefs::~SurfaceCoefs()
+MFEMSurfaceCoefs::~MFEMSurfaceCoefs()
 {
    if (buffer)
    {
