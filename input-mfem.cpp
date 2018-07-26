@@ -1,12 +1,50 @@
-
 #include <fstream>
 
-#include "mfem.hpp"
-#include "coefs.hpp"
+#include "input-mfem.hpp"
 
 
-void SurfaceCoefs::Extract(const mfem::GridFunction &solution,
-                           const mfem::GridFunction &curvature)
+MFEMSolution::MFEMSolution(const std::string &meshPath,
+                           const std::string &solutionPath)
+   : mesh(nullptr)
+   , solution(nullptr)
+{
+   std::cout << "Loading mesh: " << meshPath << std::endl;
+   mesh = new mfem::Mesh(meshPath.c_str());
+
+   int geom = mfem::Geometry::SQUARE;
+   MFEM_VERIFY(mesh->Dimension() == 3 || mesh->GetElementBaseGeometry() == geom,
+               "Only 3D hexes supported so far, sorry.");
+   MFEM_VERIFY(mesh->GetNodes() != NULL,
+               "Mesh needs to be curved (Nodes != NULL).");
+
+   std::cout << "Loading solution: " << solutionPath << std::endl;
+   std::ifstream is(solutionPath.c_str());
+   mfem::GridFunction solution(mesh, is);
+   is.close();
+
+   // TODO: project NURBS or elevate order of Nodes here, if needed
+
+   const mfem::FiniteElement* meshFE =
+         mesh->GetNodes()->FESpace()->FEColl()->FiniteElementForGeometry(geom);
+   const mfem::FiniteElement* slnFE =
+         solution.FESpace()->FEColl()->FiniteElementForGeometry(geom);
+
+   MFEM_VERIFY(slnFE->GetDof() == meshFE->GetDof(),
+               "Only isoparametric elements supported at the moment.");
+
+   int order = slnFE->GetOrder();
+   std::cout << "Polynomial order: " << order << std::endl;
+}
+
+
+MFEMSolution::~MFEMSolution()
+{
+   delete mesh;
+   delete solution;
+}
+
+
+void MFEMSurfaceCoefs::Extract(const Solution* solution)
 {
    const mfem::Mesh *mesh = solution.FESpace()->GetMesh();
 
@@ -93,19 +131,14 @@ void SurfaceCoefs::Extract(const mfem::GridFunction &solution,
                 face_coefs.size() * sizeof(float),
                 face_coefs.data(), GL_STATIC_COPY);
    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-   // debug
-   std::ofstream f("coefs.m");
-   f << "A = [\n";
-   for (int i = 0; i < face_coefs.size()/4; i++)
-   {
-      f << face_coefs[4*i + 0] << " ";
-      f << face_coefs[4*i + 1] << " ";
-      f << face_coefs[4*i + 2] << "\n";
-   }
-   f << "];\n";
-
 }
 
 
+MFEMSurfaceCoefs::~SurfaceCoefs()
+{
+   if (buffer)
+   {
+      glDeleteBuffers(1, &buffer);
+   }
+}
 

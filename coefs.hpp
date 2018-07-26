@@ -3,42 +3,43 @@
 
 #include "GL/gl.h"
 
-namespace mfem { class GridFunction; }
+//namespace mfem { class GridFunction; }
+
+
+/** Holds (an abstract) finite element solution, i.e., a high-order FE function
+ *  on a curved mesh.
+ */
+class Solution
+{
+public:
+   virtual ~Solution() {}
+};
 
 
 /** Extracts and stores the 2D coefficients of the surface of a 3D FEM solution
  *  on a curved mesh. The solution is normalized, converted from double to
  *  single precision and uploaded to a GPU buffer. The faces are treated as
  *  dicontinous, i.e., interface DOFs are duplicated.
+ *
+ *  The buffer data has this format: vec4[NFaces][NDofs]
  */
 class SurfaceCoefs
 {
 public:
-   SurfaceCoefs() : nf(), ndof(), order(), buffer() {}
+   SurfaceCoefs() : nf(), order(), buffer() {}
 
-   SurfaceCoefs(const mfem::GridFunction &solution,
-                const mfem::GridFunction &curvature)
-   {
-      Extract(solution, curvature);
-   }
-
-   void Extract(const mfem::GridFunction &solution,
-                const mfem::GridFunction &curvature);
+   virtual void Extract(const Solution* solution) = 0;
 
    int NFaces() const { return nf; }
    int Order() const { return order; }
 
-   void BindBuffer() const
-   {
-      glBindBuffer(GL_SHADER_STORAGE_BUFFER, buffer);
-   }
-   void BindBufferBase(int location) const
-   {
-      glBindBufferBase(GL_SHADER_STORAGE_BUFFER, location, buffer);
-   }
+   /// Return the ID of the SSBO.
+   GLuint Buffer() const { return buffer; }
+
+   virtual ~SurfaceCoefs();
 
 protected:
-   int nf, ndof, order;
+   int nf, order;
    GLuint buffer;
 };
 
@@ -53,16 +54,18 @@ class VolumeCoefs
 public:
    VolumeCoefs();
 
-   void Extract(const mfem::GridFunction &solution,
-                const mfem::GridFunction &curvature);
+   virtual void Extract(const Solution* solution) = 0;
 
    int NElements() const { return ne; }
    int Order() const { return order; }
 
-   void BindBuffer(int location) const;
+   /// Return the ID of the SSBO.
+   GLuint Buffer() const { return buffer; }
+
+   virtual ~VolumeCoefs();
 
 protected:
-   int ne, ndof, order;
+   int ne, order;
    GLuint buffer;
 };
 
