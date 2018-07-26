@@ -14,15 +14,21 @@ namespace mfem { class GridFunction; }
 class SurfaceCoefs
 {
 public:
-   SurfaceCoefs(const mfem::GridFunction &solution,
+   SurfaceCoefs();
+
+   void Extract(const mfem::GridFunction &solution,
                 const mfem::GridFunction &curvature);
 
-   int order() const;
+   int NFaces() const { return nf; }
+   int Order() const { return order; }
 
-   void bindBuffer(int location) const;
+   void BindBuffer(int location) const {
+      glBindBufferBase(GL_SHADER_STORAGE_BUFFER, location, buffer);
+   }
 
 protected:
-   GLint buffer;
+   int nf, ndof, order;
+   GLuint buffer;
 };
 
 
@@ -34,15 +40,19 @@ protected:
 class VolumeCoefs
 {
 public:
-   VolumeCoefs(const mfem::GridFunction &solution,
-               const mfem::GridFunction &curvature);
+   VolumeCoefs();
 
-   int order() const;
+   void Extract(const mfem::GridFunction &solution,
+                const mfem::GridFunction &curvature);
 
-   void bindBuffer(int location) const;
+   int NElements() const { return ne; }
+   int Order() const { return order; }
+
+   void BindBuffer(int location) const;
 
 protected:
-   GLint buffer;
+   int ne, ndof, order;
+   GLuint buffer;
 };
 
 

@@ -34,6 +34,7 @@ find_package(GLM REQUIRED)
 include_directories(${MFEM_PATH})
 
 set(hogtess_SOURCES
+    coefs.cpp coefs.hpp
     render.cpp render.hpp
     main.cpp main.hpp
     palette.hpp
