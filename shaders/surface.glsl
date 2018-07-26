@@ -21,9 +21,16 @@ out int tcElementID[];
 
 uniform vec2 screenSize;
 
+bool visible(vec4 pt)
+{
+    return pt.x >= -pt.w && pt.x <= pt.w &&
+           pt.y >= -pt.w && pt.y <= pt.w &&
+           pt.z >= -pt.w && pt.z <= pt.w;
+}
+
 float subdiv(float pixels)
 {
-    return max(pixels / 5, P);
+    return max(pixels / 5, 2);
 }
 
 void main()
@@ -38,26 +45,42 @@ void main()
         vert[2] = nodalValue(elemID, 0, P);
         vert[3] = nodalValue(elemID, P, P);
 
-        vec2 screen[4];
+        vec4 tvert[4];
+        bool vis = false;
         for (int i = 0; i < 4; i++) {
-            vec4 v = vec4(vert[i].xyz, 1);
-            vec4 t = MVP * v;
-            vec2 ndc = t.xy / t.w;
-            screen[i] = ndc * screenSize * 0.5;
+            tvert[i] = MVP * vec4(vert[i].xyz, 1);
+            vis = vis || visible(tvert[i]);
         }
 
-        // TODO: check if outside the view frustum
+        if (vis)
+        {
+            vec2 screen[4];
+            for (int i = 0; i < 4; i++) {
+                vec2 ndc = tvert[i].xy / tvert[i].w;
+                screen[i] = ndc * screenSize * 0.5;
+            }
 
-        // see www.khronos.org/opengl/wiki/Tessellation for the numbering
-        gl_TessLevelOuter[0] = subdiv(distance(screen[2], screen[0]));
-        gl_TessLevelOuter[1] = subdiv(distance(screen[0], screen[1]));
-        gl_TessLevelOuter[2] = subdiv(distance(screen[1], screen[3]));
-        gl_TessLevelOuter[3] = subdiv(distance(screen[3], screen[2]));
+            // see www.khronos.org/opengl/wiki/Tessellation for the numbering
+            gl_TessLevelOuter[0] = subdiv(distance(screen[2], screen[0]));
+            gl_TessLevelOuter[1] = subdiv(distance(screen[0], screen[1]));
+            gl_TessLevelOuter[2] = subdiv(distance(screen[1], screen[3]));
+            gl_TessLevelOuter[3] = subdiv(distance(screen[3], screen[2]));
 
-        gl_TessLevelInner[0] = (gl_TessLevelOuter[1] + gl_TessLevelOuter[3])*0.5;
-        gl_TessLevelInner[1] = (gl_TessLevelOuter[0] + gl_TessLevelOuter[2])*0.5;
+            gl_TessLevelInner[0] = (gl_TessLevelOuter[1] + gl_TessLevelOuter[3])*0.5;
+            gl_TessLevelInner[1] = (gl_TessLevelOuter[0] + gl_TessLevelOuter[2])*0.5;
 
-        tcElementID[gl_InvocationID] = elemID;
+            tcElementID[gl_InvocationID] = elemID;
+        }
+        else
+        {
+            gl_TessLevelOuter[0] = 0;
+            gl_TessLevelOuter[1] = 0;
+            gl_TessLevelOuter[2] = 0;
+            gl_TessLevelOuter[3] = 0;
+
+            gl_TessLevelInner[0] = 0;
+            gl_TessLevelInner[1] = 0;
+        }
     }
 }
 
