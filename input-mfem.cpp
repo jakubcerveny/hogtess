@@ -5,54 +5,54 @@
 
 MFEMSolution::MFEMSolution(const std::string &meshPath,
                            const std::string &solutionPath)
-   : mesh(nullptr)
-   , solution(nullptr)
+   : mesh_(nullptr)
+   , solution_(nullptr)
 {
    std::cout << "Loading mesh: " << meshPath << std::endl;
-   mesh = new mfem::Mesh(meshPath.c_str());
+   mesh_ = new mfem::Mesh(meshPath.c_str());
 
    int geom = mfem::Geometry::CUBE;
-   MFEM_VERIFY(mesh->Dimension() == 3 || mesh->GetElementBaseGeometry() == geom,
+   MFEM_VERIFY(mesh_->Dimension() == 3 || mesh_->GetElementBaseGeometry() == geom,
                "Only 3D hexes supported so far, sorry.");
-   MFEM_VERIFY(mesh->GetNodes() != NULL,
+   MFEM_VERIFY(mesh_->GetNodes() != NULL,
                "Mesh needs to be curved (Nodes != NULL).");
 
    std::cout << "Loading solution: " << solutionPath << std::endl;
    std::ifstream is(solutionPath.c_str());
-   mfem::GridFunction solution(mesh, is);
+   solution_ = new mfem::GridFunction(mesh_, is);
    is.close();
 
    // TODO: project NURBS or elevate order of Nodes here, if needed
 
    const mfem::FiniteElement* meshFE =
-         mesh->GetNodes()->FESpace()->FEColl()->FiniteElementForGeometry(geom);
+         mesh_->GetNodes()->FESpace()->FEColl()->FiniteElementForGeometry(geom);
    const mfem::FiniteElement* slnFE =
-         solution.FESpace()->FEColl()->FiniteElementForGeometry(geom);
+         solution_->FESpace()->FEColl()->FiniteElementForGeometry(geom);
 
    MFEM_VERIFY(slnFE->GetDof() == meshFE->GetDof(),
                "Only isoparametric elements supported at the moment.");
 
-   int order = slnFE->GetOrder();
-   std::cout << "Polynomial order: " << order << std::endl;
+   order_ = slnFE->GetOrder();
+   std::cout << "Polynomial order: " << order_ << std::endl;
 }
 
 
 MFEMSolution::~MFEMSolution()
 {
-   delete mesh;
-   delete solution;
+   delete mesh_;
+   delete solution_;
 }
 
 
-void MFEMSurfaceCoefs::Extract(const Solution &solution)
+void MFEMSurfaceCoefs::extract(const Solution &solution)
 {
    const auto *mfem_sln = dynamic_cast<const MFEMSolution*>(&solution);
    MFEM_VERIFY(mfem_sln, "Not an MFEM solution!");
 
-   const mfem::Mesh *mesh = mfem_sln->Mesh();
+   const mfem::Mesh *mesh = mfem_sln->mesh();
 
-   const mfem::GridFunction *sln = mfem_sln->Solution();
-   const mfem::GridFunction *nodes = mfem_sln->Mesh()->GetNodes();
+   const mfem::GridFunction *sln = mfem_sln->solution();
+   const mfem::GridFunction *nodes = mfem_sln->mesh()->GetNodes();
 
    const auto *sln_space = sln->FESpace();
    const auto *nodes_space = nodes->FESpace();
@@ -68,28 +68,28 @@ void MFEMSurfaceCoefs::Extract(const Solution &solution)
                "Curvature currently must have the same space as the solution.");
 
    int ndof = sln_fe->GetDof();
-   order = sln_fe->GetOrder();
+   order_ = sln_fe->GetOrder();
 
    const mfem::Array<int> &dof_map = sln_fe->GetDofMap();
 
    // count boundary faces
-   nf = 0;
+   nf_ = 0;
    for (int i = 0; i < mesh->GetNFaces(); i++)
    {
-      if (mesh->GetFace(i)->GetAttribute() > 0) { nf++; }
+      if (mesh->GetFace(i)->GetAttribute() > 0) { nf_++; }
    }
 
    mfem::Array<int> dofs, vdofs;
-   std::vector<float> face_coefs(4*nf*ndof, 0.f);
+   std::vector<float> face_coefs(4*nf_*ndof, 0.f);
 
    // extract face coefs
-   nf = 0;
+   nf_ = 0;
    for (int i = 0; i < mesh->GetNFaces(); i++)
    {
       const mfem::Element* face = mesh->GetFace(i);
       if (face->GetAttribute() <= 0) { continue; }
 
-      float* coefs = &(face_coefs[4*(nf++)*ndof]);
+      float* coefs = &(face_coefs[4*(nf_++)*ndof]);
 
       sln_space->GetFaceDofs(i, dofs);
       MFEM_ASSERT(dofs.Size() == ndof, "");
@@ -118,14 +118,14 @@ void MFEMSurfaceCoefs::Extract(const Solution &solution)
    }
 
    // clean up if buffer already exists
-   if (buffer)
+   if (buffer_)
    {
-      glDeleteBuffers(1, &buffer);
+      glDeleteBuffers(1, &buffer_);
    }
 
    // create a shader buffer
-   glGenBuffers(1, &buffer);
-   glBindBuffer(GL_SHADER_STORAGE_BUFFER, buffer);
+   glGenBuffers(1, &buffer_);
+   glBindBuffer(GL_SHADER_STORAGE_BUFFER, buffer_);
    glBufferData(GL_SHADER_STORAGE_BUFFER,
                 face_coefs.size() * sizeof(float),
                 face_coefs.data(), GL_STATIC_COPY);
@@ -133,7 +133,7 @@ void MFEMSurfaceCoefs::Extract(const Solution &solution)
 }
 
 
-void MFEMVolumeCoefs::Extract(const Solution &solution)
+void MFEMVolumeCoefs::extract(const Solution &solution)
 {
    // TODO
 }

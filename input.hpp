@@ -9,6 +9,8 @@
 class Solution
 {
 public:
+   virtual int order() const = 0;
+
    virtual ~Solution() {}
 };
 
@@ -18,29 +20,30 @@ public:
  *  uploaded to a GPU buffer. The faces are treated as discontinous, i.e.,
  *  interface DOFs are duplicated.
  *
- *  The buffer has this format in GLSL: vec4[NFaces][NFaceDofs]
+ *  The buffer has this format in GLSL: vec4[numFaces][numFaceDofs]
+ *  The 'xyz' part is the curvature and 'w' is the solution.
  */
 class SurfaceCoefs
 {
 public:
-   SurfaceCoefs() : nf(), order(), buffer() {}
+   SurfaceCoefs() : nf_(), order_(), buffer_() {}
 
-   virtual void Extract(const Solution &solution) = 0;
+   virtual void extract(const Solution &solution) = 0;
 
-   int NFaces() const { return nf; }
-   int Order() const { return order; }
+   int numFaces() const { return nf_; }
+   int order() const { return order_; }
 
    /// Return the ID of the SSBO.
-   GLuint Buffer() const { return buffer; }
+   GLuint buffer() const { return buffer_; }
 
    virtual ~SurfaceCoefs()
    {
-      if (buffer) { glDeleteBuffers(1, &buffer); }
+      if (buffer_) { glDeleteBuffers(1, &buffer_); }
    }
 
 protected:
-   int nf, order;
-   GLuint buffer;
+   int nf_, order_;
+   GLuint buffer_;
 };
 
 
@@ -49,29 +52,30 @@ protected:
  *  The elements are treated as discontinous, i.e., interface DOFs are
  *  duplicated.
  *
- *  The buffer has this format in GLSL: vec4[NElements][NDofs]
+ *  The buffer has this format in GLSL: vec4[numElements][numElemDofs]
+ *  The 'xyz' part is the curvature and 'w' is the solution.
  */
 class VolumeCoefs
 {
 public:
-   VolumeCoefs() : ne(), order(), buffer(0) {}
+   VolumeCoefs() : ne_(), order_(), buffer_(0) {}
 
-   virtual void Extract(const Solution &solution) = 0;
+   virtual void extract(const Solution &solution) = 0;
 
-   int NElements() const { return ne; }
-   int Order() const { return order; }
+   int numElements() const { return ne_; }
+   int order() const { return order_; }
 
    /// Return the ID of the SSBO.
-   GLuint Buffer() const { return buffer; }
+   GLuint buffer() const { return buffer_; }
 
    virtual ~VolumeCoefs()
    {
-      if (buffer) { glDeleteBuffers(1, &buffer); }
+      if (buffer_) { glDeleteBuffers(1, &buffer_); }
    }
 
 protected:
-   int ne, order;
-   GLuint buffer;
+   int ne_, order_;
+   GLuint buffer_;
 };
 
 

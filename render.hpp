@@ -11,6 +11,7 @@
 #include <glm/fwd.hpp>
 
 #include "input.hpp" // NOTE: RenderWidget knows nothing about MFEM
+#include "surface.hpp"
 #include "shader.hpp"
 
 
@@ -23,22 +24,27 @@ class RenderWidget : public QGLWidget
 public:
    RenderWidget(const QGLFormat &format,
                 const Solution &solution,
-                const SurfaceCoefs &surfaceCoefs,
-                const VolumeCoefs &volumeCoefs);
+                const double *nodalPoints,
+                SurfaceCoefs &surfaceCoefs,
+                VolumeCoefs &volumeCoefs);
 
    virtual ~RenderWidget();
 
 protected:
-
    const Solution &solution;
-   const SurfaceCoefs &surfaceCoefs;
-   const VolumeCoefs &volumeCoefs;
+   SurfaceCoefs &surfaceCoefs;
+   VolumeCoefs &volumeCoefs;
+
+   SurfaceMesh surfaceMesh;
 
    Program progSurface;
    GLuint vao, tex;
 
    void compileShaders();
    void shapeInit(const Program &prog);
+
+   void updateCoefs();
+   void updateMeshes();
 
    virtual void initializeGL();
    virtual void resizeGL(int width, int height);
@@ -48,13 +54,6 @@ protected:
    virtual void mouseMoveEvent(QMouseEvent *event);
    virtual void wheelEvent(QWheelEvent *event);
    virtual void keyPressEvent(QKeyEvent * event);
-
-   //int numElements, polyOrder, elemPack;
-   const double *nodes;
-
-   /*int meshDim, slnDim;
-   const double* const* meshCoefs;
-   const double* const* slnCoefs;*/
 
    QSize curSize;
    double aspect;
@@ -69,6 +68,7 @@ protected:
    float panX, panY;
 
    bool wireframe;
+   int tessLevel;
 };
 
 

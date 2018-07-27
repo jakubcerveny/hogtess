@@ -42,7 +42,7 @@ void lagrangeShape(float y, out float result[P+1])
 }
 
 
-uniform sampler2DRect coefSampler;
+/*uniform sampler2DRect coefSampler;
 uniform int elemPack;
 uniform int elemMask;
 
@@ -73,4 +73,4 @@ vec4 nodalValue(int elemID, int i, int j)
 
     return texture(coefSampler, ivec2(elemX + j, elemY + i));
 }
-
+*/

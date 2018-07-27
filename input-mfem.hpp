@@ -14,14 +14,17 @@ public:
    MFEMSolution(const std::string &meshPath,
                 const std::string &solutionPath);
 
-   const mfem::Mesh *Mesh() const { return mesh; }
-   const mfem::GridFunction *Solution() const { return solution; }
+   const mfem::Mesh *mesh() const { return mesh_; }
+   const mfem::GridFunction *solution() const { return solution_; }
+
+   int order() const { return order_; }
 
    virtual ~MFEMSolution();
 
 protected:
-   mfem::Mesh *mesh;
-   mfem::GridFunction *solution;
+   int order_;
+   mfem::Mesh *mesh_;
+   mfem::GridFunction *solution_;
 };
 
 
@@ -30,7 +33,7 @@ class MFEMSurfaceCoefs : public SurfaceCoefs
 public:
    MFEMSurfaceCoefs() : SurfaceCoefs() {}
 
-   virtual void Extract(const Solution &solution);
+   virtual void extract(const Solution &solution);
 };
 
 
@@ -39,7 +42,7 @@ class MFEMVolumeCoefs : public VolumeCoefs
 public:
    MFEMVolumeCoefs() : VolumeCoefs() {}
 
-   virtual void Extract(const Solution &solution);
+   virtual void extract(const Solution &solution);
 };
 
 

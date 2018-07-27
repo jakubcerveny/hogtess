@@ -12,8 +12,8 @@
 
 #include "render.hpp"
 #include "palette.hpp"
+#include "shape.hpp"
 
-#include "shaders/shape.glsl.hpp"
 #include "shaders/surface.glsl.hpp"
 
 const double PanSpeed = 0.005;
@@ -22,14 +22,17 @@ const double RotateSpeed = 0.4;
 
 RenderWidget::RenderWidget(const QGLFormat &format,
                            const Solution &solution,
-                           const SurfaceCoefs &surfaceCoefs,
-                           const VolumeCoefs &volumeCoefs)
+                           const double *nodalPoints,
+                           SurfaceCoefs &surfaceCoefs,
+                           VolumeCoefs &volumeCoefs)
 
    : QGLWidget(format, (QWidget*) 0)
 
    , solution(solution)
    , surfaceCoefs(surfaceCoefs)
    , volumeCoefs(volumeCoefs)
+
+   , surfaceMesh(nodalPoints)
 
    , rotating(false)
    , scaling(false)
@@ -39,7 +42,8 @@ RenderWidget::RenderWidget(const QGLFormat &format,
    , scale(0.)
    , panX(0.), panY(0.)
 
-   , wireframe(false)
+   , wireframe(true)
+   , tessLevel(8)
 {
    grabKeyboard();
 }
@@ -66,6 +70,8 @@ void RenderWidget::compileShaders()
        TessControlShader(version, surface, defs),
        TessEvalShader(version, surface, defs),
        FragmentShader(version, surface, defs));*/
+
+   surfaceMesh.compileShaders(solution.order());
 }
 
 
@@ -84,11 +90,22 @@ void RenderWidget::initializeGL()
    }
 
    compileShaders();
-
+   updateCoefs();
+   updateMeshes();
 
    glEnable(GL_DEPTH_TEST);
-   //glEnable(GL_CULL_FACE);
+   glEnable(GL_CULL_FACE);
    glEnable(GL_MULTISAMPLE);
+}
+
+void RenderWidget::updateCoefs()
+{
+   surfaceCoefs.extract(solution);
+}
+
+void RenderWidget::updateMeshes()
+{
+   surfaceMesh.tesselate(surfaceCoefs, tessLevel);
 }
 
 void RenderWidget::resizeGL(int width, int height)
@@ -96,35 +113,6 @@ void RenderWidget::resizeGL(int width, int height)
    glViewport(0, 0, width, height);
    curSize = QSize(width, height);
    aspect = (double) width / height;
-}
-
-void RenderWidget::shapeInit(const Program &prog)
-{
-/*   int p1 = polyOrder+1;
-   double weights[p1];
-   float fnodes[p1], fweights[p1];
-
-   for (int i = 0; i <= polyOrder; i++)
-   {
-      weights[i] = 1.0;
-   }
-   for (int i = 0; i <= polyOrder; i++)
-   {
-      for (int j = 0; j < i; j++)
-      {
-         double xij = nodes[i] - nodes[j];
-         weights[i] *=  xij;
-         weights[j] *= -xij;
-      }
-   }
-   for (int i = 0; i <= polyOrder; i++)
-   {
-      fnodes[i] = nodes[i];
-      fweights[i] = 1.0 / weights[i];
-   }
-
-   glUniform1fv(prog.uniform("lagrangeNodes"), p1, fnodes);
-   glUniform1fv(prog.uniform("lagrangeWeights"), p1, fweights);*/
 }
 
 void RenderWidget::paintGL()
@@ -165,12 +153,14 @@ void RenderWidget::mouseMoveEvent(QMouseEvent *event)
 
     if (event->buttons() & Qt::LeftButton)
     {
-       rotateX += deltaX;
-       rotateY += deltaY;
+       rotateX += deltaY;
+       rotateY += deltaX;
     }
     else if (event->buttons() & Qt::RightButton)
     {
-       scale += deltaY;
+       //scale += deltaY;
+       scale -= 0.002 * deltaY;
+       scale = std::max(scale, 0.0001f);
     }
     else if (event->buttons() & Qt::MiddleButton)
     {
@@ -192,25 +182,29 @@ void RenderWidget::keyPressEvent(QKeyEvent * event)
 {
    switch (event->key())
    {
-   case Qt::Key_Q:
-      parentWidget()->close();
-      break;
+      case Qt::Key_Q:
+         parentWidget()->close();
+         break;
 
-   case Qt::Key_Left:
-      break;
+      case Qt::Key_Left:
+         break;
 
-   case Qt::Key_Right:
-      break;
+      case Qt::Key_Right:
+         break;
 
-   case Qt::Key_Minus:
-      break;
+      case Qt::Key_Minus:
+         tessLevel--;
+         updateMeshes();
+         break;
 
-   case Qt::Key_Plus:
-      break;
+      case Qt::Key_Plus:
+         tessLevel++;
+         updateMeshes();
+         break;
 
-   case Qt::Key_W:
-      wireframe = !wireframe;
-      break;
+      case Qt::Key_W:
+         wireframe = !wireframe;
+         break;
    }
    updateGL();
 }

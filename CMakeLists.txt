@@ -36,10 +36,12 @@ include_directories(${MFEM_PATH})
 set(hogtess_SOURCES
     input.hpp
     input-mfem.cpp input-mfem.hpp
-    render.cpp render.hpp
     main.cpp main.hpp
+    render.cpp render.hpp
+    surface.cpp surface.hpp
     palette.hpp
     shader.hpp
+    shape.cpp shape.hpp
 )
 
 set(hogtess_MOC_HEADERS
@@ -51,6 +53,7 @@ qt4_wrap_cpp(hogtess_MOC_FILES ${hogtess_MOC_HEADERS})
 
 file_to_cpp(hogtess_DATA shaders::shape shaders/shape.glsl)
 file_to_cpp(hogtess_DATA shaders::surface shaders/surface.glsl)
+file_to_cpp(hogtess_DATA shaders::computeSurface shaders/compute-surface.glsl)
 
 add_executable(hogtess
     ${hogtess_SOURCES}

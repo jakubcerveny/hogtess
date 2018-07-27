@@ -2,6 +2,7 @@
 #define SHADER_HPP_INCLUDED
 
 #include <string>
+#include <cstring>
 #include <stdexcept>
 #include <iostream>
 #include <vector>
@@ -75,7 +76,7 @@ struct ShaderSource
    int length;
 
    ShaderSource(const char *src)
-      : data(src), length(strlen(src)) {}
+      : data(src), length(std::strlen(src)) {}
 
    ShaderSource(const std::string &src)
       : data(src.data()), length(src.length()) {}
