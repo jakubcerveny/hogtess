@@ -1,13 +1,13 @@
 #include "surface.hpp"
 #include "utility.hpp"
-#include "shape.hpp"
+#include "shape/shape.hpp"
 #include "palette.hpp"
 
 #include <glm/gtc/type_ptr.hpp>
 
-#include "shaders/shape.glsl.hpp"
-#include "shaders/compute-surface.glsl.hpp"
-#include "shaders/surface.glsl.hpp"
+#include "shape/shape.glsl.hpp"
+#include "surface/compute.glsl.hpp"
+#include "surface/draw.glsl.hpp"
 
 
 void SurfaceMesh::initializeGL(int order)
@@ -80,10 +80,3 @@ void SurfaceMesh::draw(const glm::mat4 &MVP, bool lines)
    glDrawArrays(GL_POINTS, 0, numFaces*sqr(tessLevel+1));
 }
 
-
-/*void SurfaceMesh::deleteBuffers()
-{
-   GLuint buf[3] = { vertexBuffer, indexBuffer, indexBufferLines };
-   glDeleteBuffers(3, buf);
-   vertexBuffer = indexBuffer = indexBufferLines = 0;
-}*/

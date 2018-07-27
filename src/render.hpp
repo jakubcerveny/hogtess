@@ -8,10 +8,8 @@
 #include <QGLWidget>
 #include <QSize>
 
-#include <glm/fwd.hpp>
-
-#include "input.hpp" // NOTE: RenderWidget knows nothing about MFEM
-#include "surface.hpp"
+#include "input/input.hpp" // NOTE: RenderWidget knows nothing about MFEM
+#include "surface/surface.hpp"
 #include "shader.hpp"
 
 

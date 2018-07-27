@@ -3,7 +3,7 @@
 
 #include <glm/glm.hpp>
 
-#include "input.hpp"
+#include "input/input.hpp"
 #include "shader.hpp"
 
 
@@ -17,7 +17,6 @@ public:
       : nodalPoints(nodalPoints)
       , numFaces(0), tessLevel(0)
       , vao(0), vertexBuffer(0)
-      //, indexBuffer(0), indexBufferLines(0)
    {}
 
    ///
@@ -39,10 +38,6 @@ protected:
 
    Program progCompute, progDraw;
    GLuint vao, vertexBuffer;
-
-   //GLuint indexBuffer, indexBufferLines;
-
-   //void deleteBuffers();
 };
 
 

@@ -32,37 +32,6 @@ find_package(GLM REQUIRED)
 #include_directories(${EIGEN3_INCLUDE_DIR})
 
 include_directories(${MFEM_PATH})
+include_directories(${CMAKE_SOURCE_DIR}/src)
 
-set(hogtess_SOURCES
-    input.hpp
-    input-mfem.cpp input-mfem.hpp
-    main.cpp main.hpp
-    render.cpp render.hpp
-    surface.cpp surface.hpp
-    palette.hpp
-    shader.hpp
-    shape.cpp shape.hpp
-)
-
-set(hogtess_MOC_HEADERS
-    main.hpp
-    render.hpp
-)
-
-qt4_wrap_cpp(hogtess_MOC_FILES ${hogtess_MOC_HEADERS})
-
-file_to_cpp(hogtess_DATA shaders::shape shaders/shape.glsl)
-file_to_cpp(hogtess_DATA shaders::surface::draw shaders/surface.glsl)
-file_to_cpp(hogtess_DATA shaders::surface::compute shaders/compute-surface.glsl)
-
-add_executable(hogtess
-    ${hogtess_SOURCES}
-    ${hogtess_MOC_FILES}
-    ${hogtess_DATA}
-)
-
-target_link_libraries(hogtess
-    ${QT_LIBRARIES}
-    ${OPENGL_LIBRARIES}
-    ${MFEM_PATH}/libmfem.a
-)
+add_subdirectory(src)

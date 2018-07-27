@@ -5,7 +5,7 @@
 #include "main.hpp"
 #include "render.hpp"
 
-#include "input-mfem.hpp"
+#include "input/input-mfem.hpp"
 
 
 MainWindow::MainWindow(QWidget* gl)

@@ -10,7 +10,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "render.hpp"
-#include "shape.hpp"
 #include "utility.hpp"
 
 const double PanSpeed = 0.005;
