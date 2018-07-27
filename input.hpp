@@ -5,13 +5,23 @@
 
 
 /** Holds an abstract high order finite element solution on a curved mesh.
+ *  hogtess does not work with the solution directly -- it only passes it to
+ *  SurfaceCoefs and VolumeCoefs to extract the higher order coefficients in
+ *  the format it needs. The solution itself is opaque to hogtess.
  */
 class Solution
 {
 public:
-   virtual int order() const = 0;
-
    virtual ~Solution() {}
+
+   int order() const { return order_; }
+
+   double min(int i) const { return min_[i]; }
+   double max(int i) const { return max_[i]; }
+
+protected:
+   int order_;
+   double min_[4], max_[4];
 };
 
 

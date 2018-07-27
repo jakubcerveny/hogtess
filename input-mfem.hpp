@@ -17,14 +17,13 @@ public:
    const mfem::Mesh *mesh() const { return mesh_; }
    const mfem::GridFunction *solution() const { return solution_; }
 
-   int order() const { return order_; }
-
    virtual ~MFEMSolution();
 
 protected:
-   int order_;
    mfem::Mesh *mesh_;
    mfem::GridFunction *solution_;
+
+   void getMinMax(mfem::GridFunction *gf, int vd, double &min, double &max);
 };
 
 

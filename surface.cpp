@@ -1,15 +1,12 @@
-#include <fstream> // debug
-
 #include "surface.hpp"
 #include "utility.hpp"
 #include "shape.hpp"
-
 
 #include "shaders/shape.glsl.hpp"
 #include "shaders/compute-surface.glsl.hpp"
 
 
-void SurfaceMesh::compileShaders(int order)
+void SurfaceMesh::initializeGL(int order)
 {
    const int version = 430;
 
@@ -22,6 +19,8 @@ void SurfaceMesh::compileShaders(int order)
    };
 
    progCompute.link(ComputeShader(version, computeSurface, defs));
+
+   glGenVertexArrays(1, &vao);
 }
 
 
@@ -29,16 +28,19 @@ void SurfaceMesh::tesselate(const SurfaceCoefs &coefs, int level)
 {
    deleteBuffers();
 
-   glBindBuffer(GL_SHADER_STORAGE_BUFFER, coefs.buffer());
-   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, coefs.buffer());
+   numFaces = coefs.numFaces();
+   tessLevel = level;
 
    int faceVerts = sqr(level + 1);
-   long vertBufSize = 4*sizeof(float)*faceVerts*coefs.numFaces();
+   long vertBufSize = 4*sizeof(float)*faceVerts*numFaces;
 
    glGenBuffers(1, &vertexBuffer);
    glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
    glBufferData(GL_SHADER_STORAGE_BUFFER, vertBufSize, NULL, GL_STATIC_DRAW);
    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, vertexBuffer);
+
+   glBindBuffer(GL_SHADER_STORAGE_BUFFER, coefs.buffer());
+   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, coefs.buffer());
 
    progCompute.use();
    glUniform1i(progCompute.uniform("level"), level);
@@ -48,23 +50,18 @@ void SurfaceMesh::tesselate(const SurfaceCoefs &coefs, int level)
    // launch the compute shader and wait for completion
    glDispatchCompute(level+1, level+1, coefs.numFaces());
    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+}
 
-   // test
-   float* debug = new float[vertBufSize/sizeof(float)];
-   glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
-   glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, vertBufSize, debug);
 
-   std::ofstream f("test.m");
-   f << "A=[\n";
-   for (int i = 0; i < faceVerts*coefs.numFaces(); i++)
-   {
-      f << debug[i*4 + 0] << " ";
-      f << debug[i*4 + 1] << " ";
-      f << debug[i*4 + 2] << "\n";
-   }
-   f << "];\n";
+void SurfaceMesh::drawSurface()
+{
+   glBindVertexArray(vao);
+   glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
 
-   delete [] debug;
+   glEnableVertexAttribArray(0);
+   glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, NULL);
+
+   glDrawArrays(GL_POINTS, 0, numFaces*sqr(tessLevel+1));
 }
 
 

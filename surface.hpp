@@ -12,26 +12,34 @@ class SurfaceMesh
 {
 public:
    SurfaceMesh(const double *nodalPoints)
-      : vertexBuffer(0)
+      : nodalPoints(nodalPoints)
+      , numFaces(0), tessLevel(0)
+      , vao(0), vertexBuffer(0)
       , indexBuffer(0), indexBufferLines(0)
-      , nodalPoints(nodalPoints)
    {}
 
    virtual ~SurfaceMesh() { deleteBuffers(); }
 
    ///
-   void compileShaders(int order);
+   void initializeGL(int order);
 
    /**
     */
    void tesselate(const SurfaceCoefs &coefs, int level);
 
+   /**
+    */
+   void drawSurface();
+
 
 protected:
+   const double* nodalPoints;
+   int numFaces, tessLevel;
+
    Program progCompute;
+   GLuint vao;
    GLuint vertexBuffer;
    GLuint indexBuffer, indexBufferLines;
-   const double* nodalPoints;
 
    void deleteBuffers();
 };

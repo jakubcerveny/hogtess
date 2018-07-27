@@ -11,8 +11,9 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "render.hpp"
-#include "palette.hpp"
 #include "shape.hpp"
+#include "utility.hpp"
+#include "palette.hpp"
 
 #include "shaders/surface.glsl.hpp"
 
@@ -39,7 +40,7 @@ RenderWidget::RenderWidget(const QGLFormat &format,
    , translating(false)
 
    , rotateX(0.), rotateY(0.)
-   , scale(0.)
+   , scale(1.0)
    , panX(0.), panY(0.)
 
    , wireframe(true)
@@ -56,22 +57,12 @@ void RenderWidget::compileShaders()
 {
    const int version = 430;
 
-/*   Definitions defs;
-   defs("P", std::to_string(polyOrder))
-       ("PALETTE_SIZE", std::to_string(RGB_Palette_3_Size));
-
-   ShaderSource::list surface{
-      shaders::shape,
-      shaders::surface
-   };
+   Definitions defs;
+   defs("PALETTE_SIZE", std::to_string(RGB_Palette_3_Size));
 
    progSurface.link(
-       VertexShader(version, surface, defs),
-       TessControlShader(version, surface, defs),
-       TessEvalShader(version, surface, defs),
-       FragmentShader(version, surface, defs));*/
-
-   surfaceMesh.compileShaders(solution.order());
+       VertexShader(version, {shaders::surface}, defs),
+       FragmentShader(version, {shaders::surface}, defs));
 }
 
 
@@ -90,12 +81,15 @@ void RenderWidget::initializeGL()
    }
 
    compileShaders();
-   updateCoefs();
-   updateMeshes();
+
+   surfaceMesh.initializeGL(solution.order());
 
    glEnable(GL_DEPTH_TEST);
    glEnable(GL_CULL_FACE);
    glEnable(GL_MULTISAMPLE);
+
+   updateCoefs();
+   updateMeshes();
 }
 
 void RenderWidget::updateCoefs()
@@ -124,17 +118,19 @@ void RenderWidget::paintGL()
    // setup the model-view-projection transform
    glm::mat4 proj = glm::perspective(glm::radians(45.0), aspect, 0.001, 100.0);
    glm::mat4 view(1.0);
-   view = glm::translate(view, glm::vec3(0, 0, -1));
+   view = glm::translate(view, glm::vec3(0, 0, -1.5));
    view = glm::scale(view, glm::vec3(scale, scale, scale));
    view = glm::rotate(view, glm::radians(rotateX), glm::vec3(1, 0, 0));
    view = glm::rotate(view, glm::radians(rotateY), glm::vec3(0, 1, 0));
    glm::mat4 MVP = proj * view;
 
-   // draw vertices generated into the ssboVert
-/*   progMesh.use();
-   glUniformMatrix4fv(progMesh.uniform("MVP"), 1, GL_FALSE, glm::value_ptr(MVP));
-   glBindVertexArray(vao);
-   glDrawArrays(GL_TRIANGLES, 0, vertCount);*/
+   // draw tesselated surface
+   progSurface.use();
+   glUniformMatrix4fv(progSurface.uniform("MVP"),
+                      1, GL_FALSE, glm::value_ptr(MVP));
+   glUniform3fv(progSurface.uniform("palette"),
+                RGB_Palette_3_Size, (const float*) RGB_Palette_3);
+   surfaceMesh.drawSurface();
 }
 
 

@@ -38,7 +38,7 @@ protected:
    SurfaceMesh surfaceMesh;
 
    Program progSurface;
-   GLuint vao, tex;
+   GLuint vao;
 
    void compileShaders();
    void shapeInit(const Program &prog);

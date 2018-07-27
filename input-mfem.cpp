@@ -34,6 +34,34 @@ MFEMSolution::MFEMSolution(const std::string &meshPath,
 
    order_ = slnFE->GetOrder();
    std::cout << "Polynomial order: " << order_ << std::endl;
+
+   // calculate min/max of the solution and the curvature
+   // TODO: this is the lazy way to do that, the real extremes may not be in the nodes
+   for (int i = 0; i < 4; i++)
+   {
+      min_[i] = max_[i] = 0;
+   }
+   for (int i = 0; i < mesh_->GetNodes()->FESpace()->GetVDim(); i++)
+   {
+      getMinMax(mesh_->GetNodes(), i, min_[i], max_[i]);
+   }
+   getMinMax(solution_, 0, min_[3], max_[3]);
+}
+
+
+void MFEMSolution::getMinMax(mfem::GridFunction *gf, int vd,
+                             double &min, double &max)
+{
+   min = std::numeric_limits<double>::max();
+   max = std::numeric_limits<double>::lowest();
+
+   const auto *fes = gf->FESpace();
+   for (int dof = 0; dof < fes->GetNDofs(); dof++)
+   {
+      double x = (*gf)(fes->DofToVDof(dof, vd));
+      min = std::min(x, min);
+      max = std::max(x, max);
+   }
 }
 
 
@@ -79,6 +107,19 @@ void MFEMSurfaceCoefs::extract(const Solution &solution)
       if (mesh->GetFace(i)->GetAttribute() > 0) { nf_++; }
    }
 
+   // calculate normalization coefficients
+   double sln_min = mfem_sln->min(3);
+   double sln_scale = 1.0/(mfem_sln->max(3) - sln_min);
+
+   double center[3], max_size = 0.;
+   for (int i = 0; i < 3; i++)
+   {
+      center[i] = (mfem_sln->min(i) + mfem_sln->max(i)) / 2;
+      double size = mfem_sln->max(i) - mfem_sln->min(i);
+      max_size = std::max(size, max_size);
+   }
+   double mesh_scale = 1.0 / max_size;
+
    mfem::Array<int> dofs, vdofs;
    std::vector<float> face_coefs(4*nf_*ndof, 0.f);
 
@@ -99,7 +140,7 @@ void MFEMSurfaceCoefs::extract(const Solution &solution)
 
       for (int j = 0; j < ndof; j++)
       {
-         coefs[4*j + 3] = (*sln)(vdofs[dof_map[j]]);
+         coefs[4*j + 3] = ((*sln)(vdofs[dof_map[j]]) - sln_min)*sln_scale;
       }
 
       nodes_space->GetFaceDofs(i, dofs);
@@ -110,9 +151,13 @@ void MFEMSurfaceCoefs::extract(const Solution &solution)
          dofs.Copy(vdofs);
          nodes_space->DofsToVDofs(vd, vdofs);
 
+         double min = mfem_sln->min(vd);
+         double scale = 1.0/(mfem_sln->max(vd) - min);
+
          for (int j = 0; j < ndof; j++)
          {
-            coefs[4*j + vd] = (*nodes)(vdofs[dof_map[j]]);
+            coefs[4*j + vd] =
+               ((*nodes)(vdofs[dof_map[j]]) - center[vd])*mesh_scale;
          }
       }
    }
