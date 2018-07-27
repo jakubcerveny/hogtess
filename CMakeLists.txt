@@ -52,8 +52,8 @@ set(hogtess_MOC_HEADERS
 qt4_wrap_cpp(hogtess_MOC_FILES ${hogtess_MOC_HEADERS})
 
 file_to_cpp(hogtess_DATA shaders::shape shaders/shape.glsl)
-file_to_cpp(hogtess_DATA shaders::surface shaders/surface.glsl)
-file_to_cpp(hogtess_DATA shaders::computeSurface shaders/compute-surface.glsl)
+file_to_cpp(hogtess_DATA shaders::surface::draw shaders/surface.glsl)
+file_to_cpp(hogtess_DATA shaders::surface::compute shaders/compute-surface.glsl)
 
 add_executable(hogtess
     ${hogtess_SOURCES}

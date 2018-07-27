@@ -8,14 +8,10 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
 
 #include "render.hpp"
 #include "shape.hpp"
 #include "utility.hpp"
-#include "palette.hpp"
-
-#include "shaders/surface.glsl.hpp"
 
 const double PanSpeed = 0.005;
 const double RotateSpeed = 0.4;
@@ -53,19 +49,6 @@ RenderWidget::~RenderWidget()
 {
 }
 
-void RenderWidget::compileShaders()
-{
-   const int version = 430;
-
-   Definitions defs;
-   defs("PALETTE_SIZE", std::to_string(RGB_Palette_3_Size));
-
-   progSurface.link(
-       VertexShader(version, {shaders::surface}, defs),
-       FragmentShader(version, {shaders::surface}, defs));
-}
-
-
 void RenderWidget::initializeGL()
 {
    std::cout << "OpenGL version: " << glGetString(GL_VERSION)
@@ -79,8 +62,6 @@ void RenderWidget::initializeGL()
       throw std::runtime_error(
          "OpenGL version 4.3 or higher is required to run this program.");
    }
-
-   compileShaders();
 
    surfaceMesh.initializeGL(solution.order());
 
@@ -125,12 +106,7 @@ void RenderWidget::paintGL()
    glm::mat4 MVP = proj * view;
 
    // draw tesselated surface
-   progSurface.use();
-   glUniformMatrix4fv(progSurface.uniform("MVP"),
-                      1, GL_FALSE, glm::value_ptr(MVP));
-   glUniform3fv(progSurface.uniform("palette"),
-                RGB_Palette_3_Size, (const float*) RGB_Palette_3);
-   surfaceMesh.drawSurface();
+   surfaceMesh.draw(MVP, true);
 }
 
 

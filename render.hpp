@@ -37,12 +37,6 @@ protected:
 
    SurfaceMesh surfaceMesh;
 
-   Program progSurface;
-   GLuint vao;
-
-   void compileShaders();
-   void shapeInit(const Program &prog);
-
    void updateCoefs();
    void updateMeshes();
 

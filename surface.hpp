@@ -1,6 +1,8 @@
 #ifndef hogtess_surface_hpp_included__
 #define hogtess_surface_hpp_included__
 
+#include <glm/glm.hpp>
+
 #include "input.hpp"
 #include "shader.hpp"
 
@@ -15,10 +17,8 @@ public:
       : nodalPoints(nodalPoints)
       , numFaces(0), tessLevel(0)
       , vao(0), vertexBuffer(0)
-      , indexBuffer(0), indexBufferLines(0)
+      //, indexBuffer(0), indexBufferLines(0)
    {}
-
-   virtual ~SurfaceMesh() { deleteBuffers(); }
 
    ///
    void initializeGL(int order);
@@ -29,19 +29,20 @@ public:
 
    /**
     */
-   void drawSurface();
+   void draw(const glm::mat4 &MVP, bool lines);
 
+   virtual ~SurfaceMesh() {}
 
 protected:
    const double* nodalPoints;
    int numFaces, tessLevel;
 
-   Program progCompute;
-   GLuint vao;
-   GLuint vertexBuffer;
-   GLuint indexBuffer, indexBufferLines;
+   Program progCompute, progDraw;
+   GLuint vao, vertexBuffer;
 
-   void deleteBuffers();
+   //GLuint indexBuffer, indexBufferLines;
+
+   //void deleteBuffers();
 };
 
 
