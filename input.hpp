@@ -1,5 +1,5 @@
-#ifndef hogtess_coefs_hpp_included_
-#define hogtess_coefs_hpp_included_
+#ifndef hogtess_input_hpp_included_
+#define hogtess_input_hpp_included_
 
 #include "GL/gl.h"
 
@@ -33,7 +33,10 @@ public:
    /// Return the ID of the SSBO.
    GLuint Buffer() const { return buffer; }
 
-   virtual ~SurfaceCoefs() {}
+   virtual ~SurfaceCoefs()
+   {
+      if (buffer) { glDeleteBuffers(1, &buffer); }
+   }
 
 protected:
    int nf, order;
@@ -51,7 +54,7 @@ protected:
 class VolumeCoefs
 {
 public:
-   VolumeCoefs();
+   VolumeCoefs() : ne(), order(), buffer(0) {}
 
    virtual void Extract(const Solution &solution) = 0;
 
@@ -61,7 +64,10 @@ public:
    /// Return the ID of the SSBO.
    GLuint Buffer() const { return buffer; }
 
-   virtual ~VolumeCoefs() {}
+   virtual ~VolumeCoefs()
+   {
+      if (buffer) { glDeleteBuffers(1, &buffer); }
+   }
 
 protected:
    int ne, order;
@@ -69,4 +75,4 @@ protected:
 };
 
 
-#endif // hogtess_coefs_hpp_included_
+#endif // hogtess_input_hpp_included_

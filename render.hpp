@@ -10,22 +10,29 @@
 
 #include <glm/fwd.hpp>
 
+#include "input.hpp" // NOTE: RenderWidget knows nothing about MFEM
 #include "shader.hpp"
 
 
+/** High order FE solution visualization class.
+ */
 class RenderWidget : public QGLWidget
 {
    Q_OBJECT
 
 public:
    RenderWidget(const QGLFormat &format,
-                int numElements, int polyOrder, const double* nodes,
-                int meshDim, const double* const* meshCoefs,
-                int slnDim, const double* const* slnCoefs);
+                const Solution &solution,
+                const SurfaceCoefs &surfaceCoefs,
+                const VolumeCoefs &volumeCoefs);
 
    virtual ~RenderWidget();
 
 protected:
+
+   const Solution &solution;
+   const SurfaceCoefs &surfaceCoefs;
+   const VolumeCoefs &volumeCoefs;
 
    Program progSurface;
    GLuint vao, tex;
@@ -42,12 +49,12 @@ protected:
    virtual void wheelEvent(QWheelEvent *event);
    virtual void keyPressEvent(QKeyEvent * event);
 
-   int numElements, polyOrder, elemPack;
+   //int numElements, polyOrder, elemPack;
    const double *nodes;
 
-   int meshDim, slnDim;
+   /*int meshDim, slnDim;
    const double* const* meshCoefs;
-   const double* const* slnCoefs;
+   const double* const* slnCoefs;*/
 
    QSize curSize;
    double aspect;
@@ -57,9 +64,9 @@ protected:
    bool scaling;
    bool translating;
 
-   double rotateX, rotateY;
-   double scale;
-   double panX, panY;
+   float rotateX, rotateY;
+   float scale;
+   float panX, panY;
 
    bool wireframe;
 };

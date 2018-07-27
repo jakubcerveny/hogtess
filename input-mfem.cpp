@@ -133,11 +133,9 @@ void MFEMSurfaceCoefs::Extract(const Solution &solution)
 }
 
 
-MFEMSurfaceCoefs::~MFEMSurfaceCoefs()
+void MFEMVolumeCoefs::Extract(const Solution &solution)
 {
-   if (buffer)
-   {
-      glDeleteBuffers(1, &buffer);
-   }
+   // TODO
 }
+
 

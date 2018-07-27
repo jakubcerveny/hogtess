@@ -5,7 +5,7 @@
 
 #include <string>
 
-#include "coefs.hpp"
+#include "input.hpp"
 
 
 class MFEMSolution : public Solution
@@ -31,8 +31,15 @@ public:
    MFEMSurfaceCoefs() : SurfaceCoefs() {}
 
    virtual void Extract(const Solution &solution);
+};
 
-   virtual ~MFEMSurfaceCoefs();
+
+class MFEMVolumeCoefs : public VolumeCoefs
+{
+public:
+   MFEMVolumeCoefs() : VolumeCoefs() {}
+
+   virtual void Extract(const Solution &solution);
 };
 
 
