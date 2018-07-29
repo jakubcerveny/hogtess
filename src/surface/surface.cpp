@@ -1,9 +1,9 @@
+#include <glm/gtc/type_ptr.hpp>
+
 #include "surface.hpp"
 #include "utility.hpp"
 #include "shape/shape.hpp"
 #include "palette.hpp"
-
-#include <glm/gtc/type_ptr.hpp>
 
 #include "shape/shape.glsl.hpp"
 #include "surface/compute.glsl.hpp"
@@ -30,6 +30,7 @@ void SurfaceMesh::initializeGL(int order)
       VertexShader(version, {shaders::surface::draw}, defs),
       FragmentShader(version, {shaders::surface::draw}, defs));
 
+   // create an empty VAO
    glGenVertexArrays(1, &vao);
 }
 
@@ -67,17 +68,18 @@ void SurfaceMesh::tesselate(const SurfaceCoefs &coefs, int level)
 
 void SurfaceMesh::draw(const glm::mat4 &mvp, bool lines)
 {
+   int nFaceVert = sqr(tessLevel+1);
+
    progDraw.use();
    glUniformMatrix4fv(progDraw.uniform("mvp"), 1, GL_FALSE, glm::value_ptr(mvp));
+   glUniform1i(progDraw.uniform("nFaceVert"), nFaceVert);
    glUniform3fv(progDraw.uniform("palette"),
                 RGB_Palette_3_Size, (const float*) RGB_Palette_3);
 
+   glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
+   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertexBuffer);
+
    glBindVertexArray(vao);
-   glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-
-   glEnableVertexAttribArray(0);
-   glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, NULL);
-
-   glDrawArrays(GL_POINTS, 0, numFaces*sqr(tessLevel+1));
+   glDrawArraysInstanced(GL_POINTS, 0, nFaceVert, numFaces);
 }
 

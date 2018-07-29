@@ -2,14 +2,20 @@
 #if _VERTEX_
 
 uniform mat4 mvp;
+uniform int nFaceVert;
 
-in vec4 position;
+layout(std430, binding = 0) buffer vertexBuffer
+{
+   vec4 vertices[];
+};
+
 out float solution;
 
 void main()
 {
-    gl_Position = mvp * vec4(position.xyz, 1);
-    solution = position.w;
+   vec4 position = vertices[gl_VertexID + gl_InstanceID*nFaceVert];
+   gl_Position = mvp * vec4(position.xyz, 1);
+   solution = position.w;
 }
 
 #elif _FRAGMENT_
