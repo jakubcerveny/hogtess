@@ -56,7 +56,7 @@ protected:
    double panX, panY;
 
    int tessLevel;
-   bool wireframe;
+   bool wireframe, lines;
 };
 
 

@@ -32,7 +32,8 @@ RenderWidget::RenderWidget(const QGLFormat &format,
    , panX(0.), panY(0.)
 
    , tessLevel(8)
-   , wireframe(true)
+   , wireframe(false)
+   , lines(true)
 {
    grabKeyboard();
 }
@@ -56,6 +57,7 @@ void RenderWidget::initializeGL()
    surfaceMesh.initializeGL(solution.order());
 
    glEnable(GL_DEPTH_TEST);
+   glDepthFunc(GL_LEQUAL);
    glEnable(GL_CULL_FACE);
    glEnable(GL_MULTISAMPLE);
 
@@ -107,7 +109,7 @@ void RenderWidget::paintGL()
    glm::mat4 mvp = proj*view;
 
    // draw tesselated surface
-   surfaceMesh.draw(mvp, true);
+   surfaceMesh.draw(mvp, lines);
 }
 
 
@@ -177,6 +179,10 @@ void RenderWidget::keyPressEvent(QKeyEvent * event)
       case Qt::Key_Plus:
          tessLevel += 2;
          updateMeshes();
+         break;
+
+      case Qt::Key_M:
+         lines = !lines;
          break;
 
       case Qt::Key_W:

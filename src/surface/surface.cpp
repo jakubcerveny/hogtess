@@ -8,6 +8,7 @@
 #include "shape/shape.glsl.hpp"
 #include "surface/tesselate.glsl.hpp"
 #include "surface/draw.glsl.hpp"
+#include "surface/lines.glsl.hpp"
 
 
 void SurfaceMesh::initializeGL(int order)
@@ -29,6 +30,10 @@ void SurfaceMesh::initializeGL(int order)
    progDraw.link(
       VertexShader(version, {shaders::surface::draw}, defs),
       FragmentShader(version, {shaders::surface::draw}, defs));
+
+   progLines.link(
+      VertexShader(version, {shaders::surface::lines}, defs),
+      FragmentShader(version, {shaders::surface::lines}, defs));
 
    // create an empty VAO
    glGenVertexArrays(1, &vao);
@@ -66,13 +71,15 @@ void SurfaceMesh::tesselate(const SurfaceCoefs &coefs, int level)
    // wait until we can use the computed vertices
    glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 
-   makeQuadFaceIndexBuffer(level);
+   makeQuadFaceIndexBuffers(level);
 }
 
 
-void SurfaceMesh::makeQuadFaceIndexBuffer(int level)
+void SurfaceMesh::makeQuadFaceIndexBuffers(int level)
 {
    int nTri = 2*sqr(level);
+   int nLines = 4*level;
+
    int *indices = new int[3*nTri];
 
    int n = 0;
@@ -109,6 +116,27 @@ void SurfaceMesh::makeQuadFaceIndexBuffer(int level)
    glBufferData(GL_SHADER_STORAGE_BUFFER, 3*nTri*sizeof(int), indices,
                 GL_STATIC_DRAW);
 
+   n = 0;
+   for (int i = 0; i < level; i++)
+   {
+      indices[n++] = i;
+      indices[n++] = i+1;
+
+      indices[n++] = (level+1)*level + i;
+      indices[n++] = (level+1)*level + i+1;
+
+      indices[n++] = (level+1)*i;
+      indices[n++] = (level+1)*(i+1);
+
+      indices[n++] = (level+1)*i + level;
+      indices[n++] = (level+1)*(i+1) + level;
+   }
+
+   glGenBuffers(1, &lineBuffer);
+   glBindBuffer(GL_SHADER_STORAGE_BUFFER, lineBuffer);
+   glBufferData(GL_SHADER_STORAGE_BUFFER, 2*nLines*sizeof(int), indices,
+                GL_STATIC_DRAW);
+
    delete [] indices;
 }
 
@@ -117,6 +145,7 @@ void SurfaceMesh::draw(const glm::mat4 &mvp, bool lines)
 {
    int nFaceVert = sqr(tessLevel + 1);
    int nFaceTri = 2*sqr(tessLevel);
+   int nFaceLines = 4*tessLevel;
 
    progDraw.use();
    glUniformMatrix4fv(progDraw.uniform("mvp"), 1, GL_FALSE, glm::value_ptr(mvp));
@@ -132,6 +161,22 @@ void SurfaceMesh::draw(const glm::mat4 &mvp, bool lines)
 
    glBindVertexArray(vao);
    glDrawArraysInstanced(GL_TRIANGLES, 0, 3*nFaceTri, numFaces);
+
+   if (lines)
+   {
+      progLines.use();
+      glUniformMatrix4fv(progLines.uniform("mvp"), 1, GL_FALSE, glm::value_ptr(mvp));
+      glUniform1i(progLines.uniform("nFaceVert"), nFaceVert);
+
+      glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
+      glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertexBuffer);
+
+      glBindBuffer(GL_SHADER_STORAGE_BUFFER, lineBuffer);
+      glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, lineBuffer);
+
+      glBindVertexArray(vao);
+      glDrawArraysInstanced(GL_LINES, 0, 2*nFaceLines, numFaces);
+   }
 }
 
 

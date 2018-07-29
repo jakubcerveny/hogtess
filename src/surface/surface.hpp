@@ -38,11 +38,11 @@ protected:
    const double* nodalPoints;
    int numFaces, tessLevel;
 
-   Program progCompute, progDraw;
+   Program progCompute, progDraw, progLines;
    GLuint vao, vertexBuffer;
    GLuint indexBuffer, lineBuffer;
 
-   void makeQuadFaceIndexBuffer(int level);
+   void makeQuadFaceIndexBuffers(int level);
    void deleteBuffers();
 };
 
