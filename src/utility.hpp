@@ -7,4 +7,6 @@ template<typename T> T sqr(T x) { return x*x; }
 
 
 
+
+
 #endif // hogtess_utility_hpp_included__

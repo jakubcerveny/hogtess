@@ -1,14 +1,14 @@
 #line 2
 #if _VERTEX_
 
-uniform mat4 MVP;
+uniform mat4 mvp;
 
 in vec4 position;
 out float solution;
 
 void main()
 {
-    gl_Position = MVP * vec4(position.xyz, 1);
+    gl_Position = mvp * vec4(position.xyz, 1);
     solution = position.w;
 }
 

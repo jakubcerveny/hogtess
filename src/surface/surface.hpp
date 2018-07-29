@@ -28,7 +28,7 @@ public:
 
    /**
     */
-   void draw(const glm::mat4 &MVP, bool lines);
+   void draw(const glm::mat4 &mvp, bool lines);
 
    virtual ~SurfaceMesh() {}
 

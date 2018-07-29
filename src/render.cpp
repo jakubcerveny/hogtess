@@ -12,9 +12,6 @@
 #include "render.hpp"
 #include "utility.hpp"
 
-const double PanSpeed = 0.005;
-const double RotateSpeed = 0.4;
-
 
 RenderWidget::RenderWidget(const QGLFormat &format,
                            const Solution &solution,
@@ -30,12 +27,8 @@ RenderWidget::RenderWidget(const QGLFormat &format,
 
    , surfaceMesh(nodalPoints)
 
-   , rotating(false)
-   , scaling(false)
-   , translating(false)
-
    , rotateX(0.), rotateY(0.)
-   , scale(1.0)
+   , zoom(0.)
    , panX(0.), panY(0.)
 
    , wireframe(true)
@@ -95,17 +88,22 @@ void RenderWidget::paintGL()
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
    glPolygonMode(GL_FRONT_AND_BACK, wireframe ? GL_LINE : GL_FILL);
 
-   // setup the model-view-projection transform
-   glm::mat4 proj = glm::perspective(glm::radians(45.0), aspect, 0.001, 100.0);
-   glm::mat4 view(1.0);
-   view = glm::translate(view, glm::vec3(0, 0, -1.5));
-   view = glm::scale(view, glm::vec3(scale, scale, scale));
-   view = glm::rotate(view, glm::radians(rotateX), glm::vec3(1, 0, 0));
-   view = glm::rotate(view, glm::radians(rotateY), glm::vec3(0, 1, 0));
-   glm::mat4 MVP = proj * view;
+   // set up the projection matrix
+   glm::dmat4 proj = glm::perspective(glm::radians(30.0), aspect, 0.001, 10.0);
+
+   // set up the model view matrix
+   double scale = std::exp(zoom);
+   glm::dmat4 view(1.0);
+   view = glm::translate(view, glm::dvec3(0, 0, -2));
+   view = glm::scale(view, glm::dvec3(scale, scale, scale));
+   view = glm::rotate(view, glm::radians(rotateX), glm::dvec3(1, 0, 0));
+   view = glm::rotate(view, glm::radians(rotateY), glm::dvec3(0, 1, 0));
+   view = glm::rotate(view, glm::radians(-90.0), glm::dvec3(1, 0, 0));
+
+   glm::dmat4 mvp = proj*view;
 
    // draw tesselated surface
-   surfaceMesh.draw(MVP, true);
+   surfaceMesh.draw(mvp, true);
 }
 
 
@@ -124,14 +122,14 @@ void RenderWidget::mouseMoveEvent(QMouseEvent *event)
 
     if (event->buttons() & Qt::LeftButton)
     {
-       rotateX += deltaY;
-       rotateY += deltaX;
+       const double speed = 0.75;
+       rotateX += speed * deltaY;
+       rotateY += speed * deltaX;
     }
     else if (event->buttons() & Qt::RightButton)
     {
-       //scale += deltaY;
-       scale -= 0.002 * deltaY;
-       scale = std::max(scale, 0.0001f);
+       const double speed = 0.01;
+       zoom -= speed * deltaY;
     }
     else if (event->buttons() & Qt::MiddleButton)
     {
@@ -145,8 +143,9 @@ void RenderWidget::mouseMoveEvent(QMouseEvent *event)
 
 void RenderWidget::wheelEvent(QWheelEvent *event)
 {
-//    position(2) *= pow(1.04, (float) -event->delta() / 120);
-    updateGL();
+   const double speed = 0.1;
+   zoom += speed * event->delta() / 120.0;
+   updateGL();
 }
 
 void RenderWidget::keyPressEvent(QKeyEvent * event)

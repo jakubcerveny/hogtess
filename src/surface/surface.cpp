@@ -57,17 +57,18 @@ void SurfaceMesh::tesselate(const SurfaceCoefs &coefs, int level)
    glUniform1f(progCompute.uniform("invLevel"), 1.0 / level);
    lagrangeShapeInit(progCompute, coefs.order(), nodalPoints);
 
-   // launch the compute shader and wait for completion
+   // launch the compute shader
    glDispatchCompute(level+1, level+1, coefs.numFaces());
-   glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+   // wait until we can use the computed vertices
+   glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 }
 
 
-void SurfaceMesh::draw(const glm::mat4 &MVP, bool lines)
+void SurfaceMesh::draw(const glm::mat4 &mvp, bool lines)
 {
    progDraw.use();
-   glUniformMatrix4fv(progDraw.uniform("MVP"),
-                      1, GL_FALSE, glm::value_ptr(MVP));
+   glUniformMatrix4fv(progDraw.uniform("mvp"), 1, GL_FALSE, glm::value_ptr(mvp));
    glUniform3fv(progDraw.uniform("palette"),
                 RGB_Palette_3_Size, (const float*) RGB_Palette_3);
 

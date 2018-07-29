@@ -51,13 +51,9 @@ protected:
    double aspect;
    QPoint lastPos;
 
-   bool rotating;
-   bool scaling;
-   bool translating;
-
-   float rotateX, rotateY;
-   float scale;
-   float panX, panY;
+   double rotateX, rotateY;
+   double zoom;
+   double panX, panY;
 
    bool wireframe;
    int tessLevel;

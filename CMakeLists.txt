@@ -4,10 +4,10 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
 project(hogtess)
 
+#### change this to your MFEM path ####
 set(MFEM_PATH ${CMAKE_SOURCE_DIR}/../mfem)
 
 add_definitions(-std=c++11 -ggdb)
-include_directories(${CMAKE_BINARY_DIR})
 include(cmake/file2cpp.cmake)
 
 if(EXISTS /usr/bin/qmake-qt4)
@@ -31,7 +31,10 @@ find_package(GLM REQUIRED)
 #find_package(Eigen3 3.2 REQUIRED)
 #include_directories(${EIGEN3_INCLUDE_DIR})
 
-include_directories(${MFEM_PATH})
 include_directories(${CMAKE_SOURCE_DIR}/src)
+include_directories(${CMAKE_BINARY_DIR}/src)
+include_directories(${MFEM_PATH})
+
+set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 
 add_subdirectory(src)
