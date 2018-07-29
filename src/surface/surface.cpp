@@ -6,7 +6,7 @@
 #include "palette.hpp"
 
 #include "shape/shape.glsl.hpp"
-#include "surface/compute.glsl.hpp"
+#include "surface/tesselate.glsl.hpp"
 #include "surface/draw.glsl.hpp"
 
 
@@ -20,7 +20,7 @@ void SurfaceMesh::initializeGL(int order)
 
    ShaderSource::list computeSurface{
       shaders::shape,
-      shaders::surface::compute
+      shaders::surface::tesselate
    };
 
    progCompute.link(
@@ -56,6 +56,7 @@ void SurfaceMesh::tesselate(const SurfaceCoefs &coefs, int level)
    progCompute.use();
    glUniform1i(progCompute.uniform("level"), level);
    glUniform1f(progCompute.uniform("invLevel"), 1.0 / level);
+
    lagrangeUniforms(progCompute, coefs.order(), nodalPoints);
 
    // launch the compute shader
