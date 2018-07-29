@@ -2,6 +2,8 @@
 
 #include "input-mfem.hpp"
 
+using namespace mfem;
+
 
 MFEMSolution::MFEMSolution(const std::string &meshPath,
                            const std::string &solutionPath)
@@ -9,9 +11,9 @@ MFEMSolution::MFEMSolution(const std::string &meshPath,
    , solution_(nullptr)
 {
    std::cout << "Loading mesh: " << meshPath << std::endl;
-   mesh_ = new mfem::Mesh(meshPath.c_str());
+   mesh_ = new Mesh(meshPath.c_str());
 
-   int geom = mfem::Geometry::CUBE;
+   int geom = Geometry::CUBE;
    MFEM_VERIFY(mesh_->Dimension() == 3 || mesh_->GetElementBaseGeometry() == geom,
                "Only 3D hexes supported so far, sorry.");
    MFEM_VERIFY(mesh_->GetNodes() != NULL,
@@ -19,14 +21,14 @@ MFEMSolution::MFEMSolution(const std::string &meshPath,
 
    std::cout << "Loading solution: " << solutionPath << std::endl;
    std::ifstream is(solutionPath.c_str());
-   solution_ = new mfem::GridFunction(mesh_, is);
+   solution_ = new GridFunction(mesh_, is);
    is.close();
 
    // TODO: project NURBS or elevate order of Nodes here, if needed
 
-   const mfem::FiniteElement* meshFE =
+   const FiniteElement* meshFE =
          mesh_->GetNodes()->FESpace()->FEColl()->FiniteElementForGeometry(geom);
-   const mfem::FiniteElement* slnFE =
+   const FiniteElement* slnFE =
          solution_->FESpace()->FEColl()->FiniteElementForGeometry(geom);
 
    MFEM_VERIFY(slnFE->GetDof() == meshFE->GetDof(),
@@ -49,7 +51,7 @@ MFEMSolution::MFEMSolution(const std::string &meshPath,
 }
 
 
-void MFEMSolution::getMinMax(mfem::GridFunction *gf, int vd,
+void MFEMSolution::getMinMax(GridFunction *gf, int vd,
                              double &min, double &max)
 {
    min = std::numeric_limits<double>::max();
@@ -72,23 +74,42 @@ MFEMSolution::~MFEMSolution()
 }
 
 
+static void GetFaceDofs(const FiniteElementSpace *space,
+                        int face, Array<int> &dofs)
+{
+   if (space->GetNFDofs()) // H1 space: face DOFs exist
+   {
+      space->GetFaceDofs(face, dofs);
+   }
+   else // L2 space
+   {
+      Mesh* mesh = space->GetMesh();
+      int e1, e2, inf1, inf2;
+      mesh->GetFaceElements(face, &e1, &e2);
+      mesh->GetFaceInfos(face, &inf1, &inf2);
+
+      MFEM_ABORT("TODO");
+   }
+}
+
+
 void MFEMSurfaceCoefs::extract(const Solution &solution)
 {
    const auto *mfem_sln = dynamic_cast<const MFEMSolution*>(&solution);
    MFEM_VERIFY(mfem_sln, "Not an MFEM solution!");
 
-   const mfem::Mesh *mesh = mfem_sln->mesh();
+   const Mesh *mesh = mfem_sln->mesh();
 
-   const mfem::GridFunction *sln = mfem_sln->solution();
-   const mfem::GridFunction *nodes = mfem_sln->mesh()->GetNodes();
+   const GridFunction *sln = mfem_sln->solution();
+   const GridFunction *nodes = mfem_sln->mesh()->GetNodes();
 
    const auto *sln_space = sln->FESpace();
    const auto *nodes_space = nodes->FESpace();
 
-   const auto *sln_fe = dynamic_cast<const mfem::H1_QuadrilateralElement*>(
-      sln_space->FEColl()->FiniteElementForGeometry(mfem::Geometry::SQUARE));
-   const auto *nodes_fe = dynamic_cast<const mfem::H1_QuadrilateralElement*>(
-      nodes_space->FEColl()->FiniteElementForGeometry(mfem::Geometry::SQUARE));
+   const auto *sln_fe = dynamic_cast<const H1_QuadrilateralElement*>(
+      sln_space->FEColl()->TraceFiniteElementForGeometry(Geometry::SQUARE));
+   const auto *nodes_fe = dynamic_cast<const H1_QuadrilateralElement*>(
+      nodes_space->FEColl()->TraceFiniteElementForGeometry(Geometry::SQUARE));
 
    MFEM_VERIFY(sln_fe != NULL && nodes_fe != NULL,
                "Only H1_QuadrilateralElement supported at the moment.");
@@ -98,7 +119,7 @@ void MFEMSurfaceCoefs::extract(const Solution &solution)
    int ndof = sln_fe->GetDof();
    order_ = sln_fe->GetOrder();
 
-   const mfem::Array<int> &dof_map = sln_fe->GetDofMap();
+   const Array<int> &dof_map = sln_fe->GetDofMap();
 
    // count boundary faces
    nf_ = 0;
@@ -120,19 +141,18 @@ void MFEMSurfaceCoefs::extract(const Solution &solution)
    }
    double mesh_scale = 1.0 / max_size;
 
-   mfem::Array<int> dofs, vdofs;
+   Array<int> dofs, vdofs;
    std::vector<float> face_coefs(4*nf_*ndof, 0.f);
 
    // extract face coefs
    nf_ = 0;
    for (int i = 0; i < mesh->GetNFaces(); i++)
    {
-      const mfem::Element* face = mesh->GetFace(i);
-      if (face->GetAttribute() <= 0) { continue; }
+      if (mesh->FaceIsInterior(i)) { continue; }
 
       float* coefs = &(face_coefs[4*(nf_++)*ndof]);
 
-      sln_space->GetFaceDofs(i, dofs);
+      GetFaceDofs(sln_space, i, dofs);
       MFEM_ASSERT(dofs.Size() == ndof, "");
 
       dofs.Copy(vdofs);
@@ -143,7 +163,7 @@ void MFEMSurfaceCoefs::extract(const Solution &solution)
          coefs[4*j + 3] = ((*sln)(vdofs[dof_map[j]]) - sln_min)*sln_scale;
       }
 
-      nodes_space->GetFaceDofs(i, dofs);
+      GetFaceDofs(nodes_space, i, dofs);
       MFEM_ASSERT(dofs.Size() == ndof, "");
 
       for (int vd = 0; vd < nodes_space->GetVDim(); vd++)
@@ -163,10 +183,7 @@ void MFEMSurfaceCoefs::extract(const Solution &solution)
    }
 
    // clean up if buffer already exists
-   if (buffer_)
-   {
-      glDeleteBuffers(1, &buffer_);
-   }
+   glDeleteBuffers(1, &buffer_);
 
    // create a shader buffer
    glGenBuffers(1, &buffer_);

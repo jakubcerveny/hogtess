@@ -36,7 +36,7 @@ protected:
 class SurfaceCoefs
 {
 public:
-   SurfaceCoefs() : nf_(), order_(), buffer_() {}
+   SurfaceCoefs() : nf_(), order_(), buffer_(0) {}
 
    virtual void extract(const Solution &solution) = 0;
 
@@ -46,10 +46,7 @@ public:
    /// Return the ID of the SSBO.
    GLuint buffer() const { return buffer_; }
 
-   virtual ~SurfaceCoefs()
-   {
-      if (buffer_) { glDeleteBuffers(1, &buffer_); }
-   }
+   virtual ~SurfaceCoefs() { glDeleteBuffers(1, &buffer_); }
 
 protected:
    int nf_, order_;
@@ -78,10 +75,7 @@ public:
    /// Return the ID of the SSBO.
    GLuint buffer() const { return buffer_; }
 
-   virtual ~VolumeCoefs()
-   {
-      if (buffer_) { glDeleteBuffers(1, &buffer_); }
-   }
+   virtual ~VolumeCoefs() { glDeleteBuffers(1, &buffer_); }
 
 protected:
    int ne_, order_;
