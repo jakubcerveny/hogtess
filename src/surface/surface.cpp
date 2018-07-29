@@ -37,7 +37,7 @@ void SurfaceMesh::initializeGL(int order)
 
 void SurfaceMesh::tesselate(const SurfaceCoefs &coefs, int level)
 {
-   glDeleteBuffers(1, &vertexBuffer);
+   deleteBuffers();
 
    numFaces = coefs.numFaces();
    tessLevel = level;
@@ -56,30 +56,86 @@ void SurfaceMesh::tesselate(const SurfaceCoefs &coefs, int level)
    progCompute.use();
    glUniform1i(progCompute.uniform("level"), level);
    glUniform1f(progCompute.uniform("invLevel"), 1.0 / level);
-   lagrangeShapeInit(progCompute, coefs.order(), nodalPoints);
+   lagrangeUniforms(progCompute, coefs.order(), nodalPoints);
 
    // launch the compute shader
-   glDispatchCompute(level+1, level+1, coefs.numFaces());
+   // TODO: group size 32 in Z
+   glDispatchCompute(level+1, level+1, numFaces);
 
    // wait until we can use the computed vertices
    glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+
+   makeQuadFaceIndexBuffer(level);
+}
+
+
+void SurfaceMesh::makeQuadFaceIndexBuffer(int level)
+{
+   int nTri = 2*sqr(level);
+   int *indices = new int[3*nTri];
+
+   int n = 0;
+   for (int i = 0; i < level; i++)
+   for (int j = 0; j < level; j++)
+   {
+      int a = i*(level + 1) + j;
+      int b = (i + 1)*(level + 1) + j;
+
+      if ((i < level/2) ^ (j < level/2))
+      {
+         indices[n++] = a;
+         indices[n++] = b;
+         indices[n++] = b+1;
+
+         indices[n++] = b+1;
+         indices[n++] = a+1;
+         indices[n++] = a;
+      }
+      else
+      {
+         indices[n++] = a+1;
+         indices[n++] = a;
+         indices[n++] = b;
+
+         indices[n++] = b;
+         indices[n++] = b+1;
+         indices[n++] = a+1;
+      }
+   }
+
+   glGenBuffers(1, &indexBuffer);
+   glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
+   glBufferData(GL_SHADER_STORAGE_BUFFER, 3*nTri*sizeof(int), indices,
+                GL_STATIC_DRAW);
+
+   delete [] indices;
 }
 
 
 void SurfaceMesh::draw(const glm::mat4 &mvp, bool lines)
 {
-   int nFaceVert = sqr(tessLevel+1);
+   int nFaceVert = sqr(tessLevel + 1);
+   int nFaceTri = 2*sqr(tessLevel);
 
    progDraw.use();
    glUniformMatrix4fv(progDraw.uniform("mvp"), 1, GL_FALSE, glm::value_ptr(mvp));
    glUniform1i(progDraw.uniform("nFaceVert"), nFaceVert);
-   glUniform3fv(progDraw.uniform("palette"),
-                RGB_Palette_3_Size, (const float*) RGB_Palette_3);
+   glUniform3fv(progDraw.uniform("palette"), RGB_Palette_3_Size,
+                (const float*) RGB_Palette_3);
 
    glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertexBuffer);
 
+   glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
+   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indexBuffer);
+
    glBindVertexArray(vao);
-   glDrawArraysInstanced(GL_POINTS, 0, nFaceVert, numFaces);
+   glDrawArraysInstanced(GL_TRIANGLES, 0, 3*nFaceTri, numFaces);
 }
 
+
+void SurfaceMesh::deleteBuffers()
+{
+   GLuint buf[3] = { vertexBuffer, indexBuffer, lineBuffer };
+   glDeleteBuffers(3, buf);
+}

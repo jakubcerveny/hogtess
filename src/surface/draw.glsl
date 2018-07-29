@@ -9,11 +9,16 @@ layout(std430, binding = 0) buffer vertexBuffer
    vec4 vertices[];
 };
 
+layout(std430, binding = 1) buffer indexBuffer
+{
+   int indices[];
+};
+
 out float solution;
 
 void main()
 {
-   vec4 position = vertices[gl_VertexID + gl_InstanceID*nFaceVert];
+   vec4 position = vertices[indices[gl_VertexID] + gl_InstanceID*nFaceVert];
    gl_Position = mvp * vec4(position.xyz, 1);
    solution = position.w;
 }

@@ -1,9 +1,8 @@
-
 #include "shader.hpp"
 #include "shape.hpp"
 
 
-void lagrangeShapeInit(const Program &prog, int p, const double *nodalPoints)
+void lagrangeUniforms(const Program &prog, int p, const double *nodalPoints)
 {
    int p1 = p+1;
 

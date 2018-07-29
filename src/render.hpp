@@ -26,7 +26,7 @@ public:
                 SurfaceCoefs &surfaceCoefs,
                 VolumeCoefs &volumeCoefs);
 
-   virtual ~RenderWidget();
+   virtual ~RenderWidget() {}
 
 protected:
    const Solution &solution;
@@ -55,8 +55,8 @@ protected:
    double zoom;
    double panX, panY;
 
-   bool wireframe;
    int tessLevel;
+   bool wireframe;
 };
 
 

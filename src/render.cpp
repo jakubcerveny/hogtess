@@ -31,15 +31,12 @@ RenderWidget::RenderWidget(const QGLFormat &format,
    , zoom(0.)
    , panX(0.), panY(0.)
 
-   , wireframe(true)
    , tessLevel(8)
+   , wireframe(true)
 {
    grabKeyboard();
 }
 
-RenderWidget::~RenderWidget()
-{
-}
 
 void RenderWidget::initializeGL()
 {
@@ -50,7 +47,8 @@ void RenderWidget::initializeGL()
    glGetIntegerv(GL_MAJOR_VERSION, &major);
    glGetIntegerv(GL_MINOR_VERSION, &minor);
 
-   if (major*10 + minor < 43) {
+   if (major*10 + minor < 43)
+   {
       throw std::runtime_error(
          "OpenGL version 4.3 or higher is required to run this program.");
    }
@@ -65,15 +63,19 @@ void RenderWidget::initializeGL()
    updateMeshes();
 }
 
+
 void RenderWidget::updateCoefs()
 {
    surfaceCoefs.extract(solution);
 }
 
+
 void RenderWidget::updateMeshes()
 {
+   std::cout << "Tesselating surface (level " << tessLevel << ")." << std::endl;
    surfaceMesh.tesselate(surfaceCoefs, tessLevel);
 }
+
 
 void RenderWidget::resizeGL(int width, int height)
 {
@@ -81,6 +83,7 @@ void RenderWidget::resizeGL(int width, int height)
    curSize = QSize(width, height);
    aspect = (double) width / height;
 }
+
 
 void RenderWidget::paintGL()
 {
@@ -100,7 +103,8 @@ void RenderWidget::paintGL()
    view = glm::rotate(view, glm::radians(rotateY), glm::dvec3(0, 1, 0));
    view = glm::rotate(view, glm::radians(-90.0), glm::dvec3(1, 0, 0));
 
-   glm::dmat4 mvp = proj*view;
+   // final transformation matrix, round to floats
+   glm::mat4 mvp = proj*view;
 
    // draw tesselated surface
    surfaceMesh.draw(mvp, true);
@@ -111,6 +115,7 @@ void RenderWidget::mousePressEvent(QMouseEvent *event)
 {
     lastPos = event->pos();
 }
+
 
 void RenderWidget::mouseMoveEvent(QMouseEvent *event)
 {
@@ -141,12 +146,14 @@ void RenderWidget::mouseMoveEvent(QMouseEvent *event)
     updateGL();
 }
 
+
 void RenderWidget::wheelEvent(QWheelEvent *event)
 {
    const double speed = 0.1;
    zoom += speed * event->delta() / 120.0;
    updateGL();
 }
+
 
 void RenderWidget::keyPressEvent(QKeyEvent * event)
 {
@@ -163,12 +170,12 @@ void RenderWidget::keyPressEvent(QKeyEvent * event)
          break;
 
       case Qt::Key_Minus:
-         tessLevel--;
+         if (tessLevel > 2) { tessLevel -= 2; }
          updateMeshes();
          break;
 
       case Qt::Key_Plus:
-         tessLevel++;
+         tessLevel += 2;
          updateMeshes();
          break;
 
