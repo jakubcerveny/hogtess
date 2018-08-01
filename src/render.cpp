@@ -34,6 +34,9 @@ RenderWidget::RenderWidget(const QGLFormat &format,
    , tessLevel(8)
    , wireframe(false)
    , lines(true)
+   , clipMode(0)
+   , clipX(0), clipY(0), clipZ(0)
+   , clipPlane(1, 0, 0, 0)
 {
    grabKeyboard();
 }
@@ -108,8 +111,25 @@ void RenderWidget::paintGL()
    // final transformation matrix, round to floats
    glm::mat4 mvp = proj*view;
 
+   // set up clip plane
+   if (clipMode == 1)
+   {
+      const double speed = 2;
+      double phi = speed*clipY*M_PI/180;
+      double theta = speed*clipX*M_PI/180;
+      clipPlane.x = cos(phi)*cos(theta);
+      clipPlane.y = sin(phi);
+      clipPlane.z = -sin(theta);
+      clipPlane.w = -0.005 * clipZ;
+      glEnable(GL_CLIP_DISTANCE0);
+   }
+   else
+   {
+      glDisable(GL_CLIP_DISTANCE0);
+   }
+
    // draw tesselated surface
-   surfaceMesh.draw(mvp, lines);
+   surfaceMesh.draw(mvp, clipPlane, lines);
 }
 
 
@@ -159,6 +179,8 @@ void RenderWidget::wheelEvent(QWheelEvent *event)
 
 void RenderWidget::keyPressEvent(QKeyEvent * event)
 {
+   int dir = (event->modifiers() & Qt::ShiftModifier) ? -1 : 1;
+
    switch (event->key())
    {
       case Qt::Key_Q:
@@ -181,8 +203,24 @@ void RenderWidget::keyPressEvent(QKeyEvent * event)
          updateMeshes();
          break;
 
+      case Qt::Key_I:
+         clipMode = (clipMode + 1) % 2;
+         break;
+
       case Qt::Key_M:
          lines = !lines;
+         break;
+
+      case Qt::Key_X:
+         clipX += dir;
+         break;
+
+      case Qt::Key_Y:
+         clipY += dir;
+         break;
+
+      case Qt::Key_Z:
+         clipZ += dir;
          break;
 
       case Qt::Key_W:

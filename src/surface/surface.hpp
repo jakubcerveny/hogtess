@@ -26,11 +26,13 @@ public:
    /// Compile the shaders.
    void initializeGL(int order);
 
-   /// Tesselate the surface. Can only be called once.
+   /** Tesselate the surface. The specified subdivision level should be a
+       multiple of 2. This function can only be called once (or when 'level'
+       changes). */
    void tesselate(const SurfaceCoefs &coefs, int level);
 
    /// Draw the tesselated faces. Can be called many times.
-   void draw(const glm::mat4 &mvp, bool lines);
+   void draw(const glm::mat4 &mvp, const glm::vec4 &clipPlane, bool lines);
 
    virtual ~SurfaceMesh() { deleteBuffers(); }
 

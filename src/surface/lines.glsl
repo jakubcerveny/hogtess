@@ -3,6 +3,7 @@
 
 uniform mat4 mvp;
 uniform int nFaceVert;
+uniform vec4 clipPlane;
 
 layout(std430, binding = 0) buffer vertexBuffer
 {
@@ -16,8 +17,11 @@ layout(std430, binding = 1) buffer indexBuffer
 
 void main()
 {
-   vec4 position = vertices[indices[gl_VertexID] + gl_InstanceID*nFaceVert];
-   gl_Position = mvp * vec4(position.xyz, 1);
+   vec4 vert = vertices[indices[gl_VertexID] + gl_InstanceID*nFaceVert];
+   vec4 pos = vec4(vert.xyz, 1);
+   gl_Position = mvp * pos;
+   gl_ClipDistance[0] = -dot(pos, clipPlane);
+
 }
 
 #elif _FRAGMENT_

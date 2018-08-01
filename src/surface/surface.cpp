@@ -141,7 +141,8 @@ void SurfaceMesh::makeQuadFaceIndexBuffers(int level)
 }
 
 
-void SurfaceMesh::draw(const glm::mat4 &mvp, bool lines)
+void SurfaceMesh::draw(const glm::mat4 &mvp, const glm::vec4 &clipPlane,
+                       bool lines)
 {
    int nFaceVert = sqr(tessLevel + 1);
    int nFaceTri = 2*sqr(tessLevel);
@@ -150,6 +151,7 @@ void SurfaceMesh::draw(const glm::mat4 &mvp, bool lines)
    progDraw.use();
    glUniformMatrix4fv(progDraw.uniform("mvp"), 1, GL_FALSE, glm::value_ptr(mvp));
    glUniform1i(progDraw.uniform("nFaceVert"), nFaceVert);
+   glUniform4fv(progDraw.uniform("clipPlane"), 1, glm::value_ptr(clipPlane));
    glUniform3fv(progDraw.uniform("palette"), RGB_Palette_3_Size,
                 (const float*) RGB_Palette_3);
 
@@ -165,8 +167,9 @@ void SurfaceMesh::draw(const glm::mat4 &mvp, bool lines)
    if (lines)
    {
       progLines.use();
-      glUniformMatrix4fv(progLines.uniform("mvp"), 1, GL_FALSE, glm::value_ptr(mvp));
+      glUniformMatrix4fv(progDraw.uniform("mvp"), 1, GL_FALSE, glm::value_ptr(mvp));
       glUniform1i(progLines.uniform("nFaceVert"), nFaceVert);
+      glUniform4fv(progDraw.uniform("clipPlane"), 1, glm::value_ptr(clipPlane));
 
       glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
       glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertexBuffer);
