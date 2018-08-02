@@ -56,8 +56,10 @@ void CutPlaneMesh::compute(const VolumeCoefs &coefs,
 {
    deleteBuffers();
 
-   numElems = coefs.numElements();
    subdivLevel = level;
+   int numElems = coefs.numElements();
+
+   GLuint voxelBuffer, tableBuffer, counterBuffer;
 
    // STEP 1: compute vertices of a 3D subdivision of the elements
    // TODO: do this only for elements whose bounding box is cut
@@ -66,10 +68,9 @@ void CutPlaneMesh::compute(const VolumeCoefs &coefs,
    std::cout << "Voxel buffer size: "
              << double(vbufSize) / 1024 / 1024 << " MB." << std::endl;
 
-   GLuint voxelBuffer;
    glGenBuffers(1, &voxelBuffer);
    glBindBuffer(SSBO, voxelBuffer);
-   glBufferData(SSBO, vbufSize, NULL, GL_STATIC_DRAW);
+   glBufferData(SSBO, vbufSize, NULL, GL_DYNAMIC_COPY);
    glBindBufferBase(SSBO, 1, voxelBuffer);
 
    glBindBuffer(SSBO, coefs.buffer());
@@ -84,12 +85,11 @@ void CutPlaneMesh::compute(const VolumeCoefs &coefs,
    // launch the compute shader
    // TODO: group size 32 in Z
    glDispatchCompute(level+1, level+1, (level+1)*numElems);
-
-   // wait until we can use the computed vertices
    glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 
 
    // STEP 2: use marching cubes to extract the mesh of the cut plane
+   // TODO: keep buffers allocated
 
    progMarch.use();
    glUniform1i(progMarch.uniform("level"), level);
@@ -99,27 +99,35 @@ void CutPlaneMesh::compute(const VolumeCoefs &coefs,
    glBindBufferBase(SSBO, 0, voxelBuffer);
 
    // buffer for marching cubes tables
-   GLuint tableBuffer;
-   glGenBuffers(1, &ssboTables);
+   glGenBuffers(1, &tableBuffer);
    glBindBuffer(SSBO, tableBuffer);
-   glBufferData(SSBO, sizeof(mcTables), &mcTables, GL_STATIC_DRAW);
-   glBindBufferBase(SSBO, 2, tableBuffer);
+   glBufferData(SSBO, sizeof(mcTables), &mcTables, GL_DYNAMIC_COPY);
+   glBindBufferBase(SSBO, 1, tableBuffer);
 
-   // create a shader buffer to store generated triangles (triples of vertices)
-   glGenBuffers(1, &ssboVert);
-   glBindBuffer(SSBO, ssboVert);
-   glBufferData(SSBO, 12*1024*1024/*FIXME*/*sizeof(float), NULL, GL_STATIC_DRAW);
-   glBindBufferBase(SSBO, 0, ssboVert);
+   // buffer to store generated triangles (triples of vertices)
+   glGenBuffers(1, &triangleBuffer);
+   glBindBuffer(SSBO, triangleBuffer);
+   glBufferData(SSBO, 6*1024*1024/*FIXME*/*sizeof(float), NULL, GL_DYNAMIC_COPY);
+   glBindBufferBase(SSBO, 2, triangleBuffer);
 
    // buffer for an atomic uint (the number of generated vertices)
-   glGenBuffers(1, &ssboCount);
-   glBindBuffer(SSBO, ssboCount);
-   glBufferData(SSBO, sizeof(GLuint), NULL, GL_DYNAMIC_DRAW);
-   glBindBufferBase(SSBO, 1, ssboCount);
+   numVertices = 0;
+   glGenBuffers(1, &counterBuffer);
+   glBindBuffer(SSBO, counterBuffer);
+   glBufferData(SSBO, sizeof(int), &numVertices, GL_DYNAMIC_COPY);
+   glBindBufferBase(SSBO, 3, counterBuffer);
 
+   // launch the compute shader and wait for completion
+   glDispatchCompute(level, level, level*numElems);
+   glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 
+   // read the number of vertices generated
+   glBindBuffer(GL_SHADER_STORAGE_BUFFER, counterBuffer);
+   glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(int), &numVertices);
 
    glDeleteBuffers(1, &voxelBuffer);
+   glDeleteBuffers(1, &tableBuffer);
+   glDeleteBuffers(1, &counterBuffer);
 }
 
 
@@ -133,10 +141,8 @@ void CutPlaneMesh::draw(const glm::mat4 &mvp, bool lines)
    glBindBuffer(SSBO, triangleBuffer);
    glBindBufferBase(SSBO, 0, triangleBuffer);
 
-   int nv = cube(subdivLevel + 1)*numElems;
-
    glBindVertexArray(vao);
-   glDrawArrays(GL_POINTS, 0, nv);
+   glDrawArrays(GL_TRIANGLES, 0, numVertices);
 }
 
 

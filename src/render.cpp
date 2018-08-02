@@ -65,26 +65,45 @@ void RenderWidget::initializeGL()
    glEnable(GL_CULL_FACE);
    glEnable(GL_MULTISAMPLE);
 
-   updateCoefs();
-   updateMeshes();
+   updateSurfMesh();
 }
 
 
-void RenderWidget::updateCoefs()
+void RenderWidget::updateSurfMesh()
 {
-   surfaceCoefs.extract(solution);
-   volumeCoefs.extract(solution); // TODO: only when cutting
-}
-
-
-void RenderWidget::updateMeshes()
-{
+   if (!surfaceCoefs.numFaces())
+   {
+      surfaceCoefs.extract(solution);
+   }
    std::cout << "Tesselating surface (level " << tessLevel << ")." << std::endl;
    surfaceMesh.tesselate(surfaceCoefs, tessLevel);
 
+   updateCutMesh();
+}
+
+
+void RenderWidget::updateClipPlane()
+{
+   const double speed = 2;
+   double phi = speed*clipY*M_PI/180;
+   double theta = speed*clipX*M_PI/180;
+
+   clipPlane.x = cos(phi)*cos(theta);
+   clipPlane.y = sin(phi);
+   clipPlane.z = -sin(theta);
+   clipPlane.w = -0.005 * clipZ;
+}
+
+
+void RenderWidget::updateCutMesh()
+{
    if (clipMode == 1)
    {
-      //std::cout << "Calculating cut surface." << std::endl;
+      if (!volumeCoefs.numElements())
+      {
+         volumeCoefs.extract(solution);
+      }
+      updateClipPlane();
       cutPlaneMesh.compute(volumeCoefs, clipPlane, tessLevel);
    }
 }
@@ -120,23 +139,18 @@ void RenderWidget::paintGL()
    glm::mat4 mvp = proj*view;
 
    // set up clip plane
-   if (clipMode == 1)
-   {
-      const double speed = 2;
-      double phi = speed*clipY*M_PI/180;
-      double theta = speed*clipX*M_PI/180;
-
-      clipPlane.x = cos(phi)*cos(theta);
-      clipPlane.y = sin(phi);
-      clipPlane.z = -sin(theta);
-      clipPlane.w = -0.005 * clipZ;
-   }
 
    // draw tesselated surface
-   (clipMode == 1 ? glEnable : glDisable)(GL_CLIP_DISTANCE0);
+   if (clipMode == 1) {
+      updateClipPlane();
+      glEnable(GL_CLIP_DISTANCE0);
+   }
+   else {
+      glDisable(GL_CLIP_DISTANCE0);
+   }
    surfaceMesh.draw(mvp, clipPlane, lines);
 
-   // draw
+   // draw cut plane
    glDisable(GL_CLIP_DISTANCE0);
    if (clipMode == 1)
    {
@@ -207,17 +221,17 @@ void RenderWidget::keyPressEvent(QKeyEvent * event)
 
       case Qt::Key_Minus:
          if (tessLevel > 2) { tessLevel -= 2; }
-         updateMeshes();
+         updateSurfMesh();
          break;
 
       case Qt::Key_Plus:
          tessLevel += 2;
-         updateMeshes();
+         updateSurfMesh();
          break;
 
       case Qt::Key_I:
          clipMode = (clipMode + 1) % 2;
-         updateMeshes();
+         updateCutMesh();
          break;
 
       case Qt::Key_M:
@@ -226,14 +240,17 @@ void RenderWidget::keyPressEvent(QKeyEvent * event)
 
       case Qt::Key_X:
          clipX += dir;
+         updateCutMesh();
          break;
 
       case Qt::Key_Y:
          clipY += dir;
+         updateCutMesh();
          break;
 
       case Qt::Key_Z:
          clipZ += dir;
+         updateCutMesh();
          break;
 
       case Qt::Key_W:

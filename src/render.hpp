@@ -38,8 +38,10 @@ protected:
    SurfaceMesh surfaceMesh;
    CutPlaneMesh cutPlaneMesh;
 
-   void updateCoefs();
-   void updateMeshes();
+   void updateSurfCoefs();
+   void updateSurfMesh();
+   void updateClipPlane();
+   void updateCutMesh();
 
    virtual void initializeGL();
    virtual void resizeGL(int width, int height);

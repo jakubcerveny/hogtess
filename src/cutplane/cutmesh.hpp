@@ -21,12 +21,12 @@ public:
    /// Compile shaders.
    void initializeGL(int order);
 
-   /** Subdivide the volume into cells and extract an "isosurface" that
-       corresponds to the physical cutting plane. */
+   /** Subdivide the volume into linear cells and extract an "isosurface"
+       that corresponds to the cutting plane. */
    void compute(const VolumeCoefs &coefs, const glm::vec4 &clipPlane,
                 int level);
 
-   /// Draw the calculated cut plane.
+   /// Draw the computed cut plane.
    void draw(const glm::mat4 &mvp, bool lines);
 
    virtual ~CutPlaneMesh() { deleteBuffers(); }
