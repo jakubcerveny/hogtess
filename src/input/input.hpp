@@ -18,7 +18,7 @@ public:
    /// Return the polynomial degree of the FE function.
    int order() const { return order_; }
 
-   /// 1D nodal points of the FE basis.
+   /// 1D nodal positions of the FE basis.
    const double* nodes1d() const { return nodes1d_; }
 
    /** Approximate (nodal) minimum and maximum of the domain (i = 0,1,2)
@@ -44,12 +44,11 @@ protected:
 class SurfaceCoefs
 {
 public:
-   SurfaceCoefs() : nf_(), order_(), buffer_(0) {}
+   SurfaceCoefs() : nf_(0), buffer_(0) {}
 
    virtual void extract(const Solution &solution) = 0;
 
    int numFaces() const { return nf_; }
-   int order() const { return order_; }
 
    /// Return the ID of the SSBO.
    GLuint buffer() const { return buffer_; }
@@ -57,7 +56,7 @@ public:
    virtual ~SurfaceCoefs() { glDeleteBuffers(1, &buffer_); }
 
 protected:
-   int nf_, order_;
+   int nf_;
    GLuint buffer_;
 };
 
@@ -73,12 +72,11 @@ protected:
 class VolumeCoefs
 {
 public:
-   VolumeCoefs() : ne_(), order_(), buffer_(0) {}
+   VolumeCoefs() : ne_(0), buffer_(0) {}
 
    virtual void extract(const Solution &solution) = 0;
 
    int numElements() const { return ne_; }
-   int order() const { return order_; }
 
    /// Return the ID of the SSBO.
    GLuint buffer() const { return buffer_; }
@@ -86,7 +84,7 @@ public:
    virtual ~VolumeCoefs() { glDeleteBuffers(1, &buffer_); }
 
 protected:
-   int ne_, order_;
+   int ne_;
    GLuint buffer_;
 };
 

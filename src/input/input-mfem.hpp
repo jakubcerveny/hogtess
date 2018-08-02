@@ -17,11 +17,16 @@ public:
    const mfem::Mesh *mesh() const { return mesh_; }
    const mfem::GridFunction *solution() const { return solution_; }
 
+   // normalization coefficients (0,1,2=domain, 3=solution)
+   double normScale(int i) const { return scale_[i]; }
+   double normOffset(int i) const { return offset_[i]; }
+
    virtual ~MFEMSolution();
 
 protected:
    mfem::Mesh *mesh_;
    mfem::GridFunction *solution_;
+   double scale_[4], offset_[4];
 
    void getMinMax(mfem::GridFunction *gf, int vd, double &min, double &max);
 };

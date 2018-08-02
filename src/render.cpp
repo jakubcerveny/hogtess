@@ -71,6 +71,7 @@ void RenderWidget::initializeGL()
 void RenderWidget::updateCoefs()
 {
    surfaceCoefs.extract(solution);
+   volumeCoefs.extract(solution); // TODO: only when cutting
 }
 
 
