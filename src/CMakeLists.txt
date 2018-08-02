@@ -27,10 +27,13 @@ set(hogtess_MOC_HEADERS
 qt4_wrap_cpp(hogtess_MOC_FILES ${hogtess_MOC_HEADERS})
 
 file_to_cpp(hogtess_DATA shaders::shape shape/shape.glsl)
+
 file_to_cpp(hogtess_DATA shaders::surface::tesselate surface/tesselate.glsl)
 file_to_cpp(hogtess_DATA shaders::surface::draw surface/draw.glsl)
 file_to_cpp(hogtess_DATA shaders::surface::lines surface/lines.glsl)
-file_to_cpp(hogtess_DATA shaders::cutplane::compute cutplane/compute.glsl)
+
+file_to_cpp(hogtess_DATA shaders::cutplane::voxelize cutplane/voxelize.glsl)
+file_to_cpp(hogtess_DATA shaders::cutplane::march cutplane/march.glsl)
 file_to_cpp(hogtess_DATA shaders::cutplane::draw cutplane/draw.glsl)
 
 add_executable(hogtess

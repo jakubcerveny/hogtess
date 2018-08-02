@@ -14,8 +14,8 @@ class CutPlaneMesh
 public:
    CutPlaneMesh(const Solution &solution)
       : solution(solution)
-      , numElems(0), subdivLevel(0)
-      , vao(0), vertexBuffer(0), lineBuffer(0)
+      , subdivLevel(0), numVertices(0)
+      , vao(0), triangleBuffer(0), lineBuffer(0)
    {}
 
    /// Compile shaders.
@@ -33,10 +33,12 @@ public:
 
 protected:
    const Solution &solution;
-   int numElems, subdivLevel;
+   int subdivLevel, numVertices;
 
-   Program progCompute, progDraw, progLines;
-   GLuint vao, vertexBuffer, lineBuffer;
+   Program progVoxelize, progMarch;
+   Program progDraw, progLines;
+
+   GLuint vao, triangleBuffer, lineBuffer;
 
    void deleteBuffers();
 };

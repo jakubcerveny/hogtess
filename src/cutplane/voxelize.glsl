@@ -7,12 +7,12 @@ layout(local_size_x = 1,
 
 layout(std430, binding = 0) buffer coefBuffer
 {
-    vec4 coefs[];
+   vec4 coefs[];
 };
 
 layout(std430, binding = 1) buffer vertexBuffer
 {
-    vec4 vertices[];
+   vec4 vertices[];
 };
 
 uniform int level;
@@ -21,7 +21,7 @@ uniform float invLevel;
 void main()
 {
    const int ndof = (P+1)*(P+1)*(P+1);
-   const int ntess = (level+1)*(level+1)*(level+1);
+   const int elemVert = (level+1)*(level+1)*(level+1);
 
    uint tessX = gl_GlobalInvocationID.x;
    uint tessY = gl_GlobalInvocationID.y;
@@ -47,5 +47,5 @@ void main()
        value += coef*ushape[i]*vshape[j]*wshape[k];
    }
 
-   vertices[elemIdx*ntess + (level+1)*((level+1)*tessZ + tessY) + tessX] = value;
+   vertices[elemIdx*elemVert + (level+1)*((level+1)*tessZ + tessY) + tessX] = value;
 }

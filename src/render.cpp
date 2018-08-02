@@ -84,7 +84,7 @@ void RenderWidget::updateMeshes()
 
    if (clipMode == 1)
    {
-      std::cout << "Calculating cut surface." << std::endl;
+      //std::cout << "Calculating cut surface." << std::endl;
       cutPlaneMesh.compute(volumeCoefs, clipPlane, tessLevel);
    }
 }
