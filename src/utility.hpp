@@ -5,7 +5,7 @@
 
 template<typename T> T sqr(T x) { return x*x; }
 
-
+template<typename T> T cube(T x) { return x*x*x; }
 
 
 

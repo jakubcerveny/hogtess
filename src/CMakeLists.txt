@@ -30,6 +30,7 @@ file_to_cpp(hogtess_DATA shaders::shape shape/shape.glsl)
 file_to_cpp(hogtess_DATA shaders::surface::tesselate surface/tesselate.glsl)
 file_to_cpp(hogtess_DATA shaders::surface::draw surface/draw.glsl)
 file_to_cpp(hogtess_DATA shaders::surface::lines surface/lines.glsl)
+file_to_cpp(hogtess_DATA shaders::cutplane::compute cutplane/compute.glsl)
 file_to_cpp(hogtess_DATA shaders::cutplane::draw cutplane/draw.glsl)
 
 add_executable(hogtess

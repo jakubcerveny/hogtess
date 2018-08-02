@@ -13,8 +13,9 @@ class CutPlaneMesh
 {
 public:
    CutPlaneMesh(const Solution &solution)
-      : solution(solution), subdivLevel(0)
-      , vao(0), triangleBuffer(0), lineBuffer(0)
+      : solution(solution)
+      , numElems(0), subdivLevel(0)
+      , vao(0), vertexBuffer(0), lineBuffer(0)
    {}
 
    /// Compile shaders.
@@ -22,8 +23,8 @@ public:
 
    /** Subdivide the volume into cells and extract an "isosurface" that
        corresponds to the physical cutting plane. */
-   void calculate(const VolumeCoefs &coefs, const glm::vec4 &clipPlane,
-                  int level);
+   void compute(const VolumeCoefs &coefs, const glm::vec4 &clipPlane,
+                int level);
 
    /// Draw the calculated cut plane.
    void draw(const glm::mat4 &mvp, bool lines);
@@ -32,12 +33,10 @@ public:
 
 protected:
    const Solution &solution;
-   int /*numFaces,*/ subdivLevel;
-
-   const VolumeCoefs* debug;
+   int numElems, subdivLevel;
 
    Program progCompute, progDraw, progLines;
-   GLuint vao, triangleBuffer, lineBuffer;
+   GLuint vao, vertexBuffer, lineBuffer;
 
    void deleteBuffers();
 };
