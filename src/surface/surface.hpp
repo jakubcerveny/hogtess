@@ -1,7 +1,7 @@
 #ifndef hogtess_surface_hpp_included__
 #define hogtess_surface_hpp_included__
 
-#include <glm/glm.hpp>
+#include <glm/fwd.hpp>
 
 #include "input/input.hpp"
 #include "shader.hpp"
@@ -23,7 +23,7 @@ public:
       , indexBuffer(0), lineBuffer(0)
    {}
 
-   /// Compile the shaders.
+   /// Compile shaders.
    void initializeGL(int order);
 
    /** Tesselate the surface. The specified subdivision level should be a

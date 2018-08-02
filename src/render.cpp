@@ -25,6 +25,7 @@ RenderWidget::RenderWidget(const QGLFormat &format,
    , volumeCoefs(volumeCoefs)
 
    , surfaceMesh(solution)
+   , cutPlaneMesh(solution)
 
    , rotateX(0.), rotateY(0.)
    , zoom(0.)
@@ -57,6 +58,7 @@ void RenderWidget::initializeGL()
    }
 
    surfaceMesh.initializeGL(solution.order());
+   cutPlaneMesh.initializeGL(solution.order());
 
    glEnable(GL_DEPTH_TEST);
    glDepthFunc(GL_LEQUAL);
@@ -79,6 +81,12 @@ void RenderWidget::updateMeshes()
 {
    std::cout << "Tesselating surface (level " << tessLevel << ")." << std::endl;
    surfaceMesh.tesselate(surfaceCoefs, tessLevel);
+
+   if (clipMode == 1)
+   {
+      std::cout << "Calculating cut surface." << std::endl;
+      cutPlaneMesh.calculate(volumeCoefs, clipPlane, tessLevel);
+   }
 }
 
 
@@ -123,10 +131,17 @@ void RenderWidget::paintGL()
       clipPlane.z = -sin(theta);
       clipPlane.w = -0.005 * clipZ;
    }
-   (clipMode == 1 ? glEnable : glDisable)(GL_CLIP_DISTANCE0);
 
    // draw tesselated surface
+   (clipMode == 1 ? glEnable : glDisable)(GL_CLIP_DISTANCE0);
    surfaceMesh.draw(mvp, clipPlane, lines);
+
+   // draw
+   glDisable(GL_CLIP_DISTANCE0);
+   if (clipMode == 1)
+   {
+      cutPlaneMesh.draw(mvp, lines);
+   }
 }
 
 
@@ -202,6 +217,7 @@ void RenderWidget::keyPressEvent(QKeyEvent * event)
 
       case Qt::Key_I:
          clipMode = (clipMode + 1) % 2;
+         updateMeshes();
          break;
 
       case Qt::Key_M:

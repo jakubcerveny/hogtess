@@ -8,8 +8,11 @@
 #include <QGLWidget>
 #include <QSize>
 
+#include <glm/glm.hpp>
+
 #include "input/input.hpp" // NOTE: RenderWidget knows nothing about MFEM
 #include "surface/surface.hpp"
+#include "cutplane/cutmesh.hpp"
 #include "shader.hpp"
 
 
@@ -33,6 +36,7 @@ protected:
    VolumeCoefs &volumeCoefs;
 
    SurfaceMesh surfaceMesh;
+   CutPlaneMesh cutPlaneMesh;
 
    void updateCoefs();
    void updateMeshes();
