@@ -48,6 +48,9 @@ MFEMSolution::MFEMSolution(const std::string &meshPath,
       getMinMax(mesh_->GetNodes(), i, min_[i], max_[i]);
    }
    getMinMax(solution_, 0, min_[3], max_[3]);
+
+   // nodal points
+   nodes1d_ = mfem::poly1d.ClosedPoints(order_, mfem::Quadrature1D::GaussLobatto);
 }
 
 

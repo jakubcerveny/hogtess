@@ -15,7 +15,6 @@
 
 RenderWidget::RenderWidget(const QGLFormat &format,
                            const Solution &solution,
-                           const double *nodalPoints,
                            SurfaceCoefs &surfaceCoefs,
                            VolumeCoefs &volumeCoefs)
 
@@ -25,7 +24,7 @@ RenderWidget::RenderWidget(const QGLFormat &format,
    , surfaceCoefs(surfaceCoefs)
    , volumeCoefs(volumeCoefs)
 
-   , surfaceMesh(nodalPoints)
+   , surfaceMesh(solution)
 
    , rotateX(0.), rotateY(0.)
    , zoom(0.)
@@ -117,16 +116,13 @@ void RenderWidget::paintGL()
       const double speed = 2;
       double phi = speed*clipY*M_PI/180;
       double theta = speed*clipX*M_PI/180;
+
       clipPlane.x = cos(phi)*cos(theta);
       clipPlane.y = sin(phi);
       clipPlane.z = -sin(theta);
       clipPlane.w = -0.005 * clipZ;
-      glEnable(GL_CLIP_DISTANCE0);
    }
-   else
-   {
-      glDisable(GL_CLIP_DISTANCE0);
-   }
+   (clipMode == 1 ? glEnable : glDisable)(GL_CLIP_DISTANCE0);
 
    // draw tesselated surface
    surfaceMesh.draw(mvp, clipPlane, lines);

@@ -7,20 +7,28 @@
 /** Holds an abstract high order finite element solution on a curved mesh.
  *  hogtess does not work with the solution directly -- it only passes it to
  *  SurfaceCoefs and VolumeCoefs to extract the higher order coefficients in
- *  the format it needs. The solution itself is opaque to hogtess.
+ *  the format it needs. The solution itself is opaque to hogtess (except for
+ *  some basic information such as order()).
  */
 class Solution
 {
 public:
    virtual ~Solution() {}
 
+   /// Return the polynomial degree of the FE function.
    int order() const { return order_; }
 
+   /// 1D nodal points of the FE basis.
+   const double* nodes1d() const { return nodes1d_; }
+
+   /** Approximate (nodal) minimum and maximum of the domain (i = 0,1,2)
+       and the solution (i = 3). */
    double min(int i) const { return min_[i]; }
    double max(int i) const { return max_[i]; }
 
 protected:
    int order_;
+   const double *nodes1d_;
    double min_[4], max_[4];
 };
 

@@ -22,7 +22,6 @@ class RenderWidget : public QGLWidget
 public:
    RenderWidget(const QGLFormat &format,
                 const Solution &solution,
-                const double *nodalPoints,
                 SurfaceCoefs &surfaceCoefs,
                 VolumeCoefs &volumeCoefs);
 

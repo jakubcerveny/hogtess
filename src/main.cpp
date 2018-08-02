@@ -27,15 +27,6 @@ int main(int argc, char *argv[])
    MFEMSurfaceCoefs surfaceCoefs;
    MFEMVolumeCoefs volumeCoefs;
 
-   const double* nodalPoints =
-       mfem::poly1d.ClosedPoints(solution.order(),
-                                 mfem::Quadrature1D::GaussLobatto);
-
-   /*for (int i = 0; i <= solution.order(); i++)
-   {
-      std::cout << "Node " << i << ": " << nodes[i] << std::endl;
-   }*/
-
    QApplication app(argc, argv);
 
    QGLFormat glf = QGLFormat::defaultFormat();
@@ -43,7 +34,7 @@ int main(int argc, char *argv[])
    glf.setSamples(8);
 
    RenderWidget* gl =
-      new RenderWidget(glf, solution, nodalPoints, surfaceCoefs, volumeCoefs);
+      new RenderWidget(glf, solution, surfaceCoefs, volumeCoefs);
 
    MainWindow wnd(gl);
    gl->setParent(&wnd);

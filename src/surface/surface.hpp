@@ -16,8 +16,8 @@
 class SurfaceMesh
 {
 public:
-   SurfaceMesh(const double *nodalPoints)
-      : nodalPoints(nodalPoints)
+   SurfaceMesh(const Solution &solution)
+      : solution(solution)
       , numFaces(0), tessLevel(0)
       , vao(0), vertexBuffer(0)
       , indexBuffer(0), lineBuffer(0)
@@ -37,7 +37,7 @@ public:
    virtual ~SurfaceMesh() { deleteBuffers(); }
 
 protected:
-   const double* nodalPoints;
+   const Solution &solution;
    int numFaces, tessLevel;
 
    Program progCompute, progDraw, progLines;

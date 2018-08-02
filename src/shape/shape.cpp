@@ -2,7 +2,7 @@
 #include "shape.hpp"
 
 
-void lagrangeUniforms(const Program &prog, int p, const double *nodalPoints)
+void lagrangeUniforms(const Program &prog, int p, const double *nodes1d)
 {
    int p1 = p+1;
 
@@ -18,14 +18,14 @@ void lagrangeUniforms(const Program &prog, int p, const double *nodalPoints)
    {
       for (int j = 0; j < i; j++)
       {
-         double xij = nodalPoints[i] - nodalPoints[j];
+         double xij = nodes1d[i] - nodes1d[j];
          weights[i] *=  xij;
          weights[j] *= -xij;
       }
    }
    for (int i = 0; i <= p; i++)
    {
-      fnodes[i] = nodalPoints[i];
+      fnodes[i] = nodes1d[i];
       fweights[i] = 1.0 / weights[i];
    }
 

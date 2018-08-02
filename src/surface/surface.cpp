@@ -62,7 +62,7 @@ void SurfaceMesh::tesselate(const SurfaceCoefs &coefs, int level)
    glUniform1i(progCompute.uniform("level"), level);
    glUniform1f(progCompute.uniform("invLevel"), 1.0 / level);
 
-   lagrangeUniforms(progCompute, coefs.order(), nodalPoints);
+   lagrangeUniforms(progCompute, coefs.order(), solution.nodes1d());
 
    // launch the compute shader
    // TODO: group size 32 in Z
