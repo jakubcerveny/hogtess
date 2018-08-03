@@ -9,6 +9,7 @@
 #include "cutplane/voxelize.glsl.hpp"
 #include "cutplane/march.glsl.hpp"
 #include "cutplane/draw.glsl.hpp"
+#include "cutplane/lines.glsl.hpp"
 
 #include "tables.hpp"
 
@@ -34,9 +35,9 @@ void CutPlaneMesh::initializeGL(int order)
       VertexShader(version, {shaders::cutplane::draw}, defs),
       FragmentShader(version, {shaders::cutplane::draw}, defs));
 
-   /*progLines.link(
-      VertexShader(version, {shaders::surface::lines}, defs),
-      FragmentShader(version, {shaders::surface::lines}, defs));*/
+   progLines.link(
+      VertexShader(version, {shaders::cutplane::lines}, defs),
+      FragmentShader(version, {shaders::cutplane::lines}, defs));
 
    // adjust the tables
    for (int i = 0, j; i < 256; i++)
@@ -54,7 +55,7 @@ void CutPlaneMesh::initializeGL(int order)
    // atomic counter buffer
    glGenBuffers(1, &counterBuffer);
    glBindBuffer(SSBO, counterBuffer);
-   glBufferData(SSBO, sizeof(int), NULL, GL_STATIC_DRAW);
+   glBufferData(SSBO, 2*sizeof(int), NULL, GL_STATIC_DRAW);
 
    // create an empty VAO
    glGenVertexArrays(1, &vao);
@@ -122,13 +123,13 @@ void CutPlaneMesh::compute(const VolumeCoefs &coefs,
    // buffer to store generated lines (pairs of vertices)
    glGenBuffers(1, &lineBuffer);
    glBindBuffer(SSBO, lineBuffer);
-   glBufferData(SSBO, 2*1024*1024/*FIXME*/*sizeof(float), NULL, GL_DYNAMIC_COPY);
+   glBufferData(SSBO, 4*1024*1024/*FIXME*/*sizeof(float), NULL, GL_DYNAMIC_COPY);
    glBindBufferBase(SSBO, 3, lineBuffer);
 
-   // reset the atomic counter
-   numVertices = 0;
+   // reset the atomic counters
+   counters[0] = counters[1] = 0;
    glBindBuffer(SSBO, counterBuffer);
-   glBufferSubData(SSBO, 0, sizeof(int), &numVertices);
+   glBufferSubData(SSBO, 0, 2*sizeof(int), counters);
    glBindBufferBase(SSBO, 4, counterBuffer);
 
    // launch the compute shader and wait for completion
@@ -137,8 +138,9 @@ void CutPlaneMesh::compute(const VolumeCoefs &coefs,
 
    // read the number of vertices generated
    glBindBuffer(GL_SHADER_STORAGE_BUFFER, counterBuffer);
-   glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(int), &numVertices);
-   //std::cout << numVertices/3 << " triangles generated." << std::endl;
+   glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 2*sizeof(int), counters);
+
+   std::cout << "counters: " << counters[0] << ", " << counters[1] << std::endl;
 
    glDeleteBuffers(1, &voxelBuffer);
    voxelBuffer = 0;
@@ -156,7 +158,19 @@ void CutPlaneMesh::draw(const glm::mat4 &mvp, bool lines)
    glBindBufferBase(SSBO, 0, triangleBuffer);
 
    glBindVertexArray(vao);
-   glDrawArrays(GL_TRIANGLES, 0, numVertices);
+   glDrawArrays(GL_TRIANGLES, 0, counters[0]);
+
+   if (lines)
+   {
+      progLines.use();
+      glUniformMatrix4fv(progLines.uniform("mvp"), 1, GL_FALSE, glm::value_ptr(mvp));
+
+      glBindBuffer(SSBO, lineBuffer);
+      glBindBufferBase(SSBO, 0, lineBuffer);
+
+      glBindVertexArray(vao);
+      glDrawArrays(GL_LINES, 0, counters[1]);
+   }
 }
 
 

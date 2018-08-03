@@ -35,6 +35,7 @@ file_to_cpp(hogtess_DATA shaders::surface::lines surface/lines.glsl)
 file_to_cpp(hogtess_DATA shaders::cutplane::voxelize cutplane/voxelize.glsl)
 file_to_cpp(hogtess_DATA shaders::cutplane::march cutplane/march.glsl)
 file_to_cpp(hogtess_DATA shaders::cutplane::draw cutplane/draw.glsl)
+file_to_cpp(hogtess_DATA shaders::cutplane::lines cutplane/lines.glsl)
 
 add_executable(hogtess
     ${hogtess_SOURCES}

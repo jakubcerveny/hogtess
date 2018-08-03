@@ -13,8 +13,7 @@ class CutPlaneMesh
 {
 public:
    CutPlaneMesh(const Solution &solution)
-      : solution(solution)
-      , subdivLevel(0), numVertices(0)
+      : solution(solution), subdivLevel(0)
       , vao(0), triangleBuffer(0), lineBuffer(0)
       , voxelBuffer(0), tableBuffer(0), counterBuffer(0)
    {}
@@ -34,7 +33,7 @@ public:
 
 protected:
    const Solution &solution;
-   int subdivLevel, numVertices;
+   int subdivLevel, counters[2];
 
    Program progVoxelize, progMarch;
    Program progDraw, progLines;
