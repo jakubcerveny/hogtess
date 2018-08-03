@@ -46,6 +46,16 @@ void CutPlaneMesh::initializeGL(int order)
       mcTables.triTable[i][15] = j;
    }
 
+   // buffer for marching cubes tables
+   glGenBuffers(1, &tableBuffer);
+   glBindBuffer(SSBO, tableBuffer);
+   glBufferData(SSBO, sizeof(mcTables), &mcTables, GL_STATIC_DRAW);
+
+   // atomic counter buffer
+   glGenBuffers(1, &counterBuffer);
+   glBindBuffer(SSBO, counterBuffer);
+   glBufferData(SSBO, sizeof(int), NULL, GL_STATIC_DRAW);
+
    // create an empty VAO
    glGenVertexArrays(1, &vao);
 }
@@ -54,17 +64,23 @@ void CutPlaneMesh::initializeGL(int order)
 void CutPlaneMesh::compute(const VolumeCoefs &coefs,
                            const glm::vec4 &clipPlane, int level)
 {
-   deleteBuffers();
+   deleteBuffers(false);
 
    subdivLevel = level;
    int numElems = coefs.numElements();
 
-   GLuint voxelBuffer, tableBuffer, counterBuffer;
-
    // STEP 1: compute vertices of a 3D subdivision of the elements
    // TODO: do this only for elements whose bounding box is cut
 
-   long vbufSize = 4*sizeof(float)*numElems*cube(level+1);
+   progVoxelize.use();
+   glUniform1i(progVoxelize.uniform("level"), level);
+   glUniform1f(progVoxelize.uniform("invLevel"), 1.0 / level);
+
+   int localSize[3];
+   progVoxelize.localSize(localSize);
+   int sizeZ = roundUpMultiple(numElems*(level+1), localSize[2]);
+
+   long vbufSize = 4*sizeof(float)*sqr(level+1)*sizeZ;
    std::cout << "Voxel buffer size: "
              << double(vbufSize) / 1024 / 1024 << " MB." << std::endl;
 
@@ -76,15 +92,11 @@ void CutPlaneMesh::compute(const VolumeCoefs &coefs,
    glBindBuffer(SSBO, coefs.buffer());
    glBindBufferBase(SSBO, 0, coefs.buffer());
 
-   progVoxelize.use();
-   glUniform1i(progVoxelize.uniform("level"), level);
-   glUniform1f(progVoxelize.uniform("invLevel"), 1.0 / level);
-
    lagrangeUniforms(progVoxelize, solution.order(), solution.nodes1d());
 
    // launch the compute shader
-   // TODO: group size 32 in Z
-   glDispatchCompute(level+1, level+1, (level+1)*numElems);
+   int groupsZ = divRoundUp((level+1)*numElems, localSize[2]);
+   glDispatchCompute(level+1, level+1, groupsZ);
    glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 
 
@@ -98,23 +110,19 @@ void CutPlaneMesh::compute(const VolumeCoefs &coefs,
    glBindBuffer(SSBO, voxelBuffer);
    glBindBufferBase(SSBO, 0, voxelBuffer);
 
-   // buffer for marching cubes tables
-   glGenBuffers(1, &tableBuffer);
    glBindBuffer(SSBO, tableBuffer);
-   glBufferData(SSBO, sizeof(mcTables), &mcTables, GL_DYNAMIC_COPY);
    glBindBufferBase(SSBO, 1, tableBuffer);
 
    // buffer to store generated triangles (triples of vertices)
    glGenBuffers(1, &triangleBuffer);
    glBindBuffer(SSBO, triangleBuffer);
-   glBufferData(SSBO, 6*1024*1024/*FIXME*/*sizeof(float), NULL, GL_DYNAMIC_COPY);
+   glBufferData(SSBO, 32*1024*1024/*FIXME*/*sizeof(float), NULL, GL_DYNAMIC_COPY);
    glBindBufferBase(SSBO, 2, triangleBuffer);
 
-   // buffer for an atomic uint (the number of generated vertices)
+   // reset the atomic counter
    numVertices = 0;
-   glGenBuffers(1, &counterBuffer);
    glBindBuffer(SSBO, counterBuffer);
-   glBufferData(SSBO, sizeof(int), &numVertices, GL_DYNAMIC_COPY);
+   glBufferSubData(SSBO, 0, sizeof(int), &numVertices);
    glBindBufferBase(SSBO, 3, counterBuffer);
 
    // launch the compute shader and wait for completion
@@ -126,8 +134,7 @@ void CutPlaneMesh::compute(const VolumeCoefs &coefs,
    glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(int), &numVertices);
 
    glDeleteBuffers(1, &voxelBuffer);
-   glDeleteBuffers(1, &tableBuffer);
-   glDeleteBuffers(1, &counterBuffer);
+   voxelBuffer = 0;
 }
 
 
@@ -146,8 +153,15 @@ void CutPlaneMesh::draw(const glm::mat4 &mvp, bool lines)
 }
 
 
-void CutPlaneMesh::deleteBuffers()
+void CutPlaneMesh::deleteBuffers(bool all)
 {
-   GLuint buf[2] = { triangleBuffer, lineBuffer };
-   glDeleteBuffers(2, buf);
+   glDeleteBuffers(1, &triangleBuffer);
+   glDeleteBuffers(1, &lineBuffer);
+
+   if (all)
+   {
+      glDeleteBuffers(1, &voxelBuffer);
+      glDeleteBuffers(1, &tableBuffer);
+      glDeleteBuffers(1, &counterBuffer);
+   }
 }

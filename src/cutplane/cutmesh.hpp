@@ -16,6 +16,7 @@ public:
       : solution(solution)
       , subdivLevel(0), numVertices(0)
       , vao(0), triangleBuffer(0), lineBuffer(0)
+      , voxelBuffer(0), tableBuffer(0), counterBuffer(0)
    {}
 
    /// Compile shaders.
@@ -29,7 +30,7 @@ public:
    /// Draw the computed cut plane.
    void draw(const glm::mat4 &mvp, bool lines);
 
-   virtual ~CutPlaneMesh() { deleteBuffers(); }
+   virtual ~CutPlaneMesh() { deleteBuffers(true); }
 
 protected:
    const Solution &solution;
@@ -39,8 +40,9 @@ protected:
    Program progDraw, progLines;
 
    GLuint vao, triangleBuffer, lineBuffer;
+   GLuint voxelBuffer, tableBuffer, counterBuffer;
 
-   void deleteBuffers();
+   void deleteBuffers(bool all);
 };
 
 

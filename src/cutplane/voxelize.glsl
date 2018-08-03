@@ -1,9 +1,8 @@
 #line 2
 
-// TODO: group size 32 in Z
 layout(local_size_x = 1,
        local_size_y = 1,
-       local_size_z = 1) in;
+       local_size_z = 32) in;
 
 layout(std430, binding = 0) buffer coefBuffer
 {
