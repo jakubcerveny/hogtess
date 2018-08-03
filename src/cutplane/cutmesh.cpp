@@ -116,7 +116,7 @@ void CutPlaneMesh::compute(const VolumeCoefs &coefs,
    // buffer to store generated triangles (triples of vertices)
    glGenBuffers(1, &triangleBuffer);
    glBindBuffer(SSBO, triangleBuffer);
-   glBufferData(SSBO, 32*1024*1024/*FIXME*/*sizeof(float), NULL, GL_DYNAMIC_COPY);
+   glBufferData(SSBO, 16*1024*1024/*FIXME*/*sizeof(float), NULL, GL_DYNAMIC_COPY);
    glBindBufferBase(SSBO, 2, triangleBuffer);
 
    // reset the atomic counter
@@ -132,6 +132,7 @@ void CutPlaneMesh::compute(const VolumeCoefs &coefs,
    // read the number of vertices generated
    glBindBuffer(GL_SHADER_STORAGE_BUFFER, counterBuffer);
    glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(int), &numVertices);
+   //std::cout << numVertices/3 << " triangles generated." << std::endl;
 
    glDeleteBuffers(1, &voxelBuffer);
    voxelBuffer = 0;

@@ -41,15 +41,9 @@ const uvec3 cornerXYZ[8] =
    uvec3(0, 1, 1)
 };
 
-const float eps = 1e-5; // TODO needed?
-
-vec4 getVertex(float iso, vec4 p1, vec4 p2, float val1, float val2)
+vec4 interpolate(vec4 p1, vec4 p2, float val1, float val2)
 {
-   if (abs(iso - val1) < eps) { return p1; }
-   if (abs(iso - val2) < eps) { return p2; }
-   if (abs(val2 - val1) < eps) { return p1; }
-
-   return p1 + (iso - val1) / (val2 - val1) * (p2 - p1);
+   return mix(p1, p2, val1/(val1 - val2));
 }
 
 float planeDistance(vec4 pt)
@@ -88,52 +82,40 @@ void main()
    }
 
    if ((edgeMask & 1) != 0) {
-      vertex[0] = // TODO: replace getVertex with mix()?
-            getVertex(0, corner[0], corner[1], value[0], value[1]);
+      vertex[0] = interpolate(corner[0], corner[1], value[0], value[1]);
    }
    if ((edgeMask & 2) != 0) {
-      vertex[1] =
-            getVertex(0, corner[1], corner[2], value[1], value[2]);
+      vertex[1] = interpolate(corner[1], corner[2], value[1], value[2]);
    }
    if ((edgeMask & 4) != 0) {
-      vertex[2] =
-            getVertex(0, corner[2], corner[3], value[2], value[3]);
+      vertex[2] = interpolate(corner[2], corner[3], value[2], value[3]);
    }
    if ((edgeMask & 8) != 0) {
-      vertex[3] =
-            getVertex(0, corner[3], corner[0], value[3], value[0]);
+      vertex[3] = interpolate(corner[3], corner[0], value[3], value[0]);
    }
    if ((edgeMask & 16) != 0) {
-      vertex[4] =
-            getVertex(0, corner[4], corner[5], value[4], value[5]);
+      vertex[4] = interpolate(corner[4], corner[5], value[4], value[5]);
    }
    if ((edgeMask & 32) != 0) {
-      vertex[5] =
-            getVertex(0, corner[5], corner[6], value[5], value[6]);
+      vertex[5] = interpolate(corner[5], corner[6], value[5], value[6]);
    }
    if ((edgeMask & 64) != 0) {
-      vertex[6] =
-            getVertex(0, corner[6], corner[7], value[6], value[7]);
+      vertex[6] = interpolate(corner[6], corner[7], value[6], value[7]);
    }
    if ((edgeMask & 128) != 0) {
-      vertex[7] =
-            getVertex(0, corner[7], corner[4], value[7], value[4]);
+      vertex[7] = interpolate(corner[7], corner[4], value[7], value[4]);
    }
    if ((edgeMask & 256) != 0) {
-      vertex[8] =
-            getVertex(0, corner[0], corner[4], value[0], value[4]);
+      vertex[8] = interpolate(corner[0], corner[4], value[0], value[4]);
    }
    if ((edgeMask & 512) != 0) {
-      vertex[9] =
-            getVertex(0, corner[1], corner[5], value[1], value[5]);
+      vertex[9] = interpolate(corner[1], corner[5], value[1], value[5]);
    }
    if ((edgeMask & 1024) != 0) {
-      vertex[10] =
-            getVertex(0, corner[2], corner[6], value[2], value[6]);
+      vertex[10] = interpolate(corner[2], corner[6], value[2], value[6]);
    }
    if ((edgeMask & 2048) != 0) {
-      vertex[11] =
-            getVertex(0, corner[3], corner[7], value[3], value[7]);
+      vertex[11] = interpolate(corner[3], corner[7], value[3], value[7]);
    }
 
    uint nv = triTable[cubeIndex][15];
