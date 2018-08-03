@@ -21,7 +21,12 @@ layout(std430, binding = 2) buffer triangleBuffer
    vec4 outVertices[];
 };
 
-layout(std430, binding = 3) buffer counterBuffer
+layout(std430, binding = 3) buffer lineBuffer
+{
+   vec4 outLines[];
+};
+
+layout(std430, binding = 4) buffer counterBuffer
 {
    uint totalVertices;
 };
@@ -73,7 +78,7 @@ void main()
       uvec3 v = (xyz + cornerXYZ[i]);
       corner[i] = vertices[elemIdx*elemVert + level1*(level1*v.z + v.y) + v.x];
       value[i] = planeDistance(corner[i]);
-      bnd[i] = any(equal(v, lo) || equal(v, hi));
+      bnd[i] = any(equal(v, lo)) || any(equal(v, hi));
 
       if (value[i] < 0) {
          cubeIndex |= bit;
@@ -138,9 +143,9 @@ void main()
    uint nv = triTable[cubeIndex][15];
    uint pos = atomicAdd(totalVertices, nv);
 
-   for (int i = 0; i < 12; i++) {
+   /*for (int i = 0; i < 12; i++) {
       if (bflag[i]) { vertex[i].w = 0; }
-   }
+   }*/
 
    for (uint i = 0; i < nv; i++) {
       outVertices[pos++] = vertex[triTable[cubeIndex][i]];

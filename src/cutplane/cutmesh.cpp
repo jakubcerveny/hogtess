@@ -119,11 +119,17 @@ void CutPlaneMesh::compute(const VolumeCoefs &coefs,
    glBufferData(SSBO, 16*1024*1024/*FIXME*/*sizeof(float), NULL, GL_DYNAMIC_COPY);
    glBindBufferBase(SSBO, 2, triangleBuffer);
 
+   // buffer to store generated lines (pairs of vertices)
+   glGenBuffers(1, &lineBuffer);
+   glBindBuffer(SSBO, lineBuffer);
+   glBufferData(SSBO, 2*1024*1024/*FIXME*/*sizeof(float), NULL, GL_DYNAMIC_COPY);
+   glBindBufferBase(SSBO, 3, lineBuffer);
+
    // reset the atomic counter
    numVertices = 0;
    glBindBuffer(SSBO, counterBuffer);
    glBufferSubData(SSBO, 0, sizeof(int), &numVertices);
-   glBindBufferBase(SSBO, 3, counterBuffer);
+   glBindBufferBase(SSBO, 4, counterBuffer);
 
    // launch the compute shader and wait for completion
    glDispatchCompute(level, level, level*numElems);
