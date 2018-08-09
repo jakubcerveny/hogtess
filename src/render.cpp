@@ -138,8 +138,6 @@ void RenderWidget::paintGL()
    // final transformation matrix, round to floats
    glm::mat4 mvp = proj*view;
 
-   // set up clip plane
-
    // draw tesselated surface
    if (clipMode == 1) {
       updateClipPlane();
