@@ -8,30 +8,40 @@
 #include <QGLWidget>
 #include <QSize>
 
-#include <glm/fwd.hpp>
+#include <glm/glm.hpp>
 
+#include "input/input.hpp" // NOTE: RenderWidget knows nothing about MFEM
+#include "surface/surface.hpp"
+#include "cutplane/cutmesh.hpp"
 #include "shader.hpp"
 
 
+/** High order FE solution visualization class.
+ */
 class RenderWidget : public QGLWidget
 {
    Q_OBJECT
 
 public:
    RenderWidget(const QGLFormat &format,
-                int numElements, int polyOrder, const double* nodes,
-                int meshDim, const double* const* meshCoefs,
-                int slnDim, const double* const* slnCoefs);
+                const Solution &solution,
+                SurfaceCoefs &surfaceCoefs,
+                VolumeCoefs &volumeCoefs);
 
-   virtual ~RenderWidget();
+   virtual ~RenderWidget() {}
 
 protected:
+   const Solution &solution;
+   SurfaceCoefs &surfaceCoefs;
+   VolumeCoefs &volumeCoefs;
 
-   Program progSurface;
-   GLuint vao, tex;
+   SurfaceMesh surfaceMesh;
+   CutPlaneMesh cutPlaneMesh;
 
-   void compileShaders();
-   void shapeInit(const Program &prog);
+   void updateSurfCoefs();
+   void updateSurfMesh();
+   void updateClipPlane();
+   void updateCutMesh();
 
    virtual void initializeGL();
    virtual void resizeGL(int width, int height);
@@ -42,26 +52,18 @@ protected:
    virtual void wheelEvent(QWheelEvent *event);
    virtual void keyPressEvent(QKeyEvent * event);
 
-   int numElements, polyOrder, elemPack;
-   const double *nodes;
-
-   int meshDim, slnDim;
-   const double* const* meshCoefs;
-   const double* const* slnCoefs;
-
    QSize curSize;
    double aspect;
    QPoint lastPos;
 
-   bool rotating;
-   bool scaling;
-   bool translating;
-
    double rotateX, rotateY;
-   double scale;
+   double zoom;
    double panX, panY;
 
-   bool wireframe;
+   int tessLevel;
+   bool wireframe, lines;
+   int clipMode, clipX, clipY, clipZ;
+   glm::vec4 clipPlane;
 };
 
 

@@ -2,6 +2,7 @@
 #define SHADER_HPP_INCLUDED
 
 #include <string>
+#include <cstring>
 #include <stdexcept>
 #include <iostream>
 #include <vector>
@@ -75,7 +76,7 @@ struct ShaderSource
    int length;
 
    ShaderSource(const char *src)
-      : data(src), length(strlen(src)) {}
+      : data(src), length(std::strlen(src)) {}
 
    ShaderSource(const std::string &src)
       : data(src.data()), length(src.length()) {}
@@ -208,6 +209,7 @@ protected:
          case GL_TESS_CONTROL_SHADER: return "GL_TESS_CONTROL_SHADER";
          case GL_TESS_EVALUATION_SHADER: return "GL_TESS_EVALUATION_SHADER";
          case GL_FRAGMENT_SHADER: return "GL_FRAGMENT_SHADER";
+         case GL_COMPUTE_SHADER: return "GL_COMPUTE_SHADER";
          default: return "???";
       }
    }
@@ -219,6 +221,7 @@ protected:
          case GL_TESS_CONTROL_SHADER: return "_TESS_CONTROL_";
          case GL_TESS_EVALUATION_SHADER: return "_TESS_EVAL_";
          case GL_FRAGMENT_SHADER: return "_FRAGMENT_";
+         case GL_COMPUTE_SHADER: return "_COMPUTE_";
          default: return "???";
       }
    }
@@ -231,6 +234,7 @@ typedef Shader<GL_VERTEX_SHADER> VertexShader;
 typedef Shader<GL_TESS_CONTROL_SHADER> TessControlShader;
 typedef Shader<GL_TESS_EVALUATION_SHADER> TessEvalShader;
 typedef Shader<GL_FRAGMENT_SHADER> FragmentShader;
+typedef Shader<GL_COMPUTE_SHADER> ComputeShader;
 
 
 struct Attributes
@@ -260,11 +264,25 @@ public:
    void link(const VertexShader &vs, const FragmentShader &fs
              , const Attributes &attrs = Attributes())
    {
-      link(vs, TessControlShader(), TessEvalShader(), fs, attrs);
+      link(vs, {}, {}, fs, {}, attrs);
    }
 
    void link(const VertexShader &vs, const TessControlShader &tcs,
              const TessEvalShader &tes, const FragmentShader &fs
+             , const Attributes &attrs = Attributes())
+   {
+      link(vs, tcs, tes, fs, {}, attrs);
+   }
+
+   void link(const ComputeShader &cs
+             , const Attributes &attrs = Attributes())
+   {
+      link({}, {}, {}, {}, cs, attrs);
+   }
+
+   void link(const VertexShader &vs, const TessControlShader &tcs,
+             const TessEvalShader &tes, const FragmentShader &fs,
+             const ComputeShader &cs
              , const Attributes &attrs = Attributes())
    {
       // create invalid program
@@ -285,6 +303,9 @@ public:
       }
       if (fs.valid()) {
          glAttachShader(*id, fs);
+      }
+      if (cs.valid()) {
+         glAttachShader(*id, cs);
       }
 
       for (const Attributes::Attr &a : attrs.attrs) {
@@ -316,6 +337,7 @@ public:
       tcs_ = tcs;
       tes_ = tes;
       fs_ = fs;
+      cs_ = cs;
    }
 
    GLuint get() const {
@@ -350,6 +372,11 @@ public:
       return glGetAttribLocation(get(), name.c_str());
    }
 
+   /// Return local work group size of a compute shader.
+   void localSize(GLint lsize[3]) {
+      glGetProgramiv(get(), GL_COMPUTE_WORK_GROUP_SIZE, lsize);
+   }
+
 private:
 
    static void deleter(const GLuint *p) {
@@ -362,6 +389,7 @@ private:
    TessControlShader tcs_;
    TessEvalShader tes_;
    FragmentShader fs_;
+   ComputeShader cs_;
 
    typedef std::shared_ptr<GLuint> ProgramId;
    ProgramId programId_;

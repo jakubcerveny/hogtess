@@ -4,10 +4,10 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
 project(hogtess)
 
+#### change this to your MFEM path ####
 set(MFEM_PATH ${CMAKE_SOURCE_DIR}/../mfem)
 
 add_definitions(-std=c++11 -ggdb)
-include_directories(${CMAKE_BINARY_DIR})
 include(cmake/file2cpp.cmake)
 
 if(EXISTS /usr/bin/qmake-qt4)
@@ -31,33 +31,10 @@ find_package(GLM REQUIRED)
 #find_package(Eigen3 3.2 REQUIRED)
 #include_directories(${EIGEN3_INCLUDE_DIR})
 
+include_directories(${CMAKE_SOURCE_DIR}/src)
+include_directories(${CMAKE_BINARY_DIR}/src)
 include_directories(${MFEM_PATH})
 
-set(hogtess_SOURCES
-    render.cpp render.hpp
-    main.cpp main.hpp
-    palette.hpp
-    shader.hpp
-)
+set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 
-set(hogtess_MOC_HEADERS
-    main.hpp
-    render.hpp
-)
-
-qt4_wrap_cpp(hogtess_MOC_FILES ${hogtess_MOC_HEADERS})
-
-file_to_cpp(hogtess_DATA shaders::shape shaders/shape.glsl)
-file_to_cpp(hogtess_DATA shaders::surface shaders/surface.glsl)
-
-add_executable(hogtess
-    ${hogtess_SOURCES}
-    ${hogtess_MOC_FILES}
-    ${hogtess_DATA}
-)
-
-target_link_libraries(hogtess
-    ${QT_LIBRARIES}
-    ${OPENGL_LIBRARIES}
-    ${MFEM_PATH}/libmfem.a
-)
+add_subdirectory(src)
