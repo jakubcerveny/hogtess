@@ -39,18 +39,14 @@ void CutPlaneMesh::initializeGL(int order)
       VertexShader(version, {shaders::cutplane::lines}, defs),
       FragmentShader(version, {shaders::cutplane::lines}, defs));
 
-   // adjust the tables
+   // adjust and upload the tables
    for (int i = 0, j; i < 256; i++)
    {
       for (j = 0; mcTables.triTable[i][j] != -1; j++) {}
       // store vertex count
       mcTables.triTable[i][15] = j;
    }
-
-   // buffer for marching cubes tables
-   glGenBuffers(1, &tableBuffer);
-   glBindBuffer(SSBO, tableBuffer);
-   glBufferData(SSBO, sizeof(mcTables), &mcTables, GL_STATIC_DRAW);
+   bufTables.upload(&mcTables, sizeof(mcTables));
 
    // atomic counter buffer
    glGenBuffers(1, &counterBuffer);
@@ -77,9 +73,9 @@ void CutPlaneMesh::compute(const VolumeCoefs &coefs,
    glUniform1i(progVoxelize.uniform("level"), level);
    glUniform1f(progVoxelize.uniform("invLevel"), 1.0 / level);
 
-   int localSize[3];
-   progVoxelize.localSize(localSize);
-   int sizeZ = roundUpMultiple(numElems*(level+1), localSize[2]);
+   int lsize[3];
+   progVoxelize.localSize(lsize);
+   int sizeZ = roundUpMultiple(numElems*(level+1), lsize[2]);
 
    long vbufSize = 4*sizeof(float)*sqr(level+1)*sizeZ;
    std::cout << "Voxel buffer size: "
@@ -96,7 +92,7 @@ void CutPlaneMesh::compute(const VolumeCoefs &coefs,
    lagrangeUniforms(progVoxelize, solution.order(), solution.nodes1d());
 
    // launch the compute shader
-   int groupsZ = divRoundUp((level+1)*numElems, localSize[2]);
+   int groupsZ = divRoundUp((level+1)*numElems, lsize[2]);
    glDispatchCompute(level+1, level+1, groupsZ);
    glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 
@@ -111,8 +107,7 @@ void CutPlaneMesh::compute(const VolumeCoefs &coefs,
    glBindBuffer(SSBO, voxelBuffer);
    glBindBufferBase(SSBO, 0, voxelBuffer);
 
-   glBindBuffer(SSBO, tableBuffer);
-   glBindBufferBase(SSBO, 1, tableBuffer);
+   bufTables.bind(1);
 
    // buffer to store generated triangles (triples of vertices)
    glGenBuffers(1, &triangleBuffer);
@@ -182,7 +177,7 @@ void CutPlaneMesh::deleteBuffers(bool all)
    if (all)
    {
       glDeleteBuffers(1, &voxelBuffer);
-      glDeleteBuffers(1, &tableBuffer);
+      //glDeleteBuffers(1, &tableBuffer);
       glDeleteBuffers(1, &counterBuffer);
    }
 }

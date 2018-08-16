@@ -17,6 +17,7 @@ set(hogtess_SOURCES
     palette.cpp
     palette.hpp
     shader.hpp
+    buffer.hpp
 )
 
 set(hogtess_MOC_HEADERS

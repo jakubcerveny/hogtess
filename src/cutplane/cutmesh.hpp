@@ -5,6 +5,7 @@
 
 #include "input/input.hpp"
 #include "shader.hpp"
+#include "buffer.hpp"
 
 
 /**
@@ -15,7 +16,7 @@ public:
    CutPlaneMesh(const Solution &solution)
       : solution(solution), subdivLevel(0)
       , vao(0), triangleBuffer(0), lineBuffer(0)
-      , voxelBuffer(0), tableBuffer(0), counterBuffer(0)
+      , voxelBuffer(0), counterBuffer(0)
    {}
 
    /// Compile shaders.
@@ -39,7 +40,9 @@ protected:
    Program progDraw, progLines;
 
    GLuint vao, triangleBuffer, lineBuffer;
-   GLuint voxelBuffer, tableBuffer, counterBuffer;
+   GLuint voxelBuffer, counterBuffer;
+
+   Buffer bufTables;
 
    void deleteBuffers(bool all);
 };

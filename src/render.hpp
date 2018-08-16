@@ -62,6 +62,7 @@ protected:
 
    int tessLevel;
    bool wireframe, lines;
+
    int clipMode, clipX, clipY, clipZ;
    glm::vec4 clipPlane;
 };

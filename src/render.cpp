@@ -34,6 +34,7 @@ RenderWidget::RenderWidget(const QGLFormat &format,
    , tessLevel(8)
    , wireframe(false)
    , lines(true)
+
    , clipMode(0)
    , clipX(0), clipY(0), clipZ(0)
    , clipPlane(1, 0, 0, 0)
@@ -51,7 +52,7 @@ void RenderWidget::initializeGL()
    glGetIntegerv(GL_MAJOR_VERSION, &major);
    glGetIntegerv(GL_MINOR_VERSION, &minor);
 
-   if (major*10 + minor < 43)
+   if ((10*major + minor) < 43)
    {
       throw std::runtime_error(
          "OpenGL version 4.3 or higher is required to run this program.");
