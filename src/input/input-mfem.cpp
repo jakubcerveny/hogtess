@@ -16,26 +16,29 @@ MFEMSolution::MFEMSolution(const std::string &meshPath,
    int geom = Geometry::CUBE;
    MFEM_VERIFY(mesh_->Dimension() == 3 || mesh_->GetElementBaseGeometry() == geom,
                "Only 3D hexes supported so far, sorry.");
-   MFEM_VERIFY(mesh_->GetNodes() != NULL,
-               "Mesh needs to be curved (Nodes != NULL).");
 
    std::cout << "Loading solution: " << solutionPath << std::endl;
    std::ifstream is(solutionPath.c_str());
    solution_ = new GridFunction(mesh_, is);
    is.close();
 
-   // TODO: project NURBS or elevate order of Nodes here, if needed
-
-   const FiniteElement* meshFE =
-         mesh_->GetNodes()->FESpace()->FEColl()->FiniteElementForGeometry(geom);
    const FiniteElement* slnFE =
-         solution_->FESpace()->FEColl()->FiniteElementForGeometry(geom);
-
-   MFEM_VERIFY(slnFE->GetDof() == meshFE->GetDof(),
-               "Only isoparametric elements supported at the moment.");
+      solution_->FESpace()->FEColl()->FiniteElementForGeometry(geom);
 
    order_ = slnFE->GetOrder();
    std::cout << "Polynomial order: " << order_ << std::endl;
+
+   if (mesh_->GetNodes() == NULL)
+   {
+      mesh_->SetCurvature(order_);
+   }
+   // TODO: project NURBS or elevate order of Nodes here, if needed
+
+   const FiniteElement* meshFE =
+      mesh_->GetNodes()->FESpace()->FEColl()->FiniteElementForGeometry(geom);
+
+   MFEM_VERIFY(slnFE->GetDof() == meshFE->GetDof(),
+               "Only isoparametric elements supported at the moment.");
 
    // calculate the approximate min/max of the solution and the domain
    for (int i = 0; i < 4; i++)

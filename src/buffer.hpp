@@ -12,7 +12,7 @@
 class Buffer
 {
 public:
-   Buffer(GLenum usage = GL_STATIC_DRAW)
+   Buffer(GLenum usage = GL_STREAM_COPY)
       : id_(0), size_(0), usage_(usage)
    {}
 

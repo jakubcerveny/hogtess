@@ -1,8 +1,6 @@
 #ifndef hogtess_input_hpp_included_
 #define hogtess_input_hpp_included_
 
-#include "GL/gl.h"
-
 #include "buffer.hpp"
 
 
@@ -46,7 +44,7 @@ protected:
 class SurfaceCoefs
 {
 public:
-   SurfaceCoefs() : nf_(0) {}
+   SurfaceCoefs() : nf_(0), buffer_(GL_STATIC_DRAW) {}
 
    virtual void extract(const Solution &solution) = 0;
 
@@ -74,7 +72,7 @@ protected:
 class VolumeCoefs
 {
 public:
-   VolumeCoefs() : ne_(0) {}
+   VolumeCoefs() : ne_(0), buffer_(GL_STATIC_DRAW) {}
 
    virtual void extract(const Solution &solution) = 0;
 
