@@ -184,16 +184,8 @@ void MFEMSurfaceCoefs::extract(const Solution &solution)
       }
    }
 
-   // clean up if buffer already exists
-   glDeleteBuffers(1, &buffer_);
-
-   // create a shader buffer
-   glGenBuffers(1, &buffer_);
-   glBindBuffer(GL_SHADER_STORAGE_BUFFER, buffer_);
-   glBufferData(GL_SHADER_STORAGE_BUFFER,
-                face_coefs.size() * sizeof(float),
-                face_coefs.data(), GL_STATIC_COPY);
-   glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+   // upload to a shader buffer
+   buffer_.upload(face_coefs.data(), face_coefs.size()*sizeof(float));
 }
 
 
@@ -265,16 +257,8 @@ void MFEMVolumeCoefs::extract(const Solution &solution)
       }
    }
 
-   // clean up if buffer already exists
-   glDeleteBuffers(1, &buffer_);
-
-   // create a shader buffer
-   glGenBuffers(1, &buffer_);
-   glBindBuffer(GL_SHADER_STORAGE_BUFFER, buffer_);
-   glBufferData(GL_SHADER_STORAGE_BUFFER,
-                elem_coefs.size() * sizeof(float),
-                elem_coefs.data(), GL_STATIC_COPY);
-   glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+   // upload to a shader buffer
+   buffer_.upload(elem_coefs.data(), elem_coefs.size()*sizeof(float));
 }
 
 

@@ -107,6 +107,10 @@ void RenderWidget::updateCutMesh()
       updateClipPlane();
       cutPlaneMesh.compute(volumeCoefs, clipPlane, tessLevel);
    }
+   else if (clipMode == 0)
+   {
+      cutPlaneMesh.free();
+   }
 }
 
 

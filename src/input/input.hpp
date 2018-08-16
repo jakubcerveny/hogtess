@@ -3,6 +3,8 @@
 
 #include "GL/gl.h"
 
+#include "buffer.hpp"
+
 
 /** Holds an abstract high order finite element solution on a curved mesh.
  *  hogtess does not work with the solution directly -- it only passes it to
@@ -44,20 +46,20 @@ protected:
 class SurfaceCoefs
 {
 public:
-   SurfaceCoefs() : nf_(0), buffer_(0) {}
+   SurfaceCoefs() : nf_(0) {}
 
    virtual void extract(const Solution &solution) = 0;
 
    int numFaces() const { return nf_; }
 
-   /// Return the ID of the SSBO.
-   GLuint buffer() const { return buffer_; }
+   Buffer& buffer() { return buffer_; }
+   const Buffer& buffer() const { return buffer_; }
 
-   virtual ~SurfaceCoefs() { glDeleteBuffers(1, &buffer_); }
+   virtual ~SurfaceCoefs() {}
 
 protected:
    int nf_;
-   GLuint buffer_;
+   Buffer buffer_;
 };
 
 
@@ -72,20 +74,20 @@ protected:
 class VolumeCoefs
 {
 public:
-   VolumeCoefs() : ne_(0), buffer_(0) {}
+   VolumeCoefs() : ne_(0) {}
 
    virtual void extract(const Solution &solution) = 0;
 
    int numElements() const { return ne_; }
 
-   /// Return the ID of the SSBO.
-   GLuint buffer() const { return buffer_; }
+   Buffer& buffer() { return buffer_; }
+   const Buffer& buffer() const { return buffer_; }
 
-   virtual ~VolumeCoefs() { glDeleteBuffers(1, &buffer_); }
+   virtual ~VolumeCoefs() {}
 
 protected:
    int ne_;
-   GLuint buffer_;
+   Buffer buffer_;
 };
 
 

@@ -14,9 +14,7 @@ class CutPlaneMesh
 {
 public:
    CutPlaneMesh(const Solution &solution)
-      : solution(solution), subdivLevel(0)
-      , vao(0), triangleBuffer(0), lineBuffer(0)
-      , voxelBuffer(0), counterBuffer(0)
+      : solution(solution), subdivLevel(0), vao(0)
    {}
 
    /// Compile shaders.
@@ -30,7 +28,8 @@ public:
    /// Draw the computed cut plane.
    void draw(const glm::mat4 &mvp, bool lines);
 
-   virtual ~CutPlaneMesh() { deleteBuffers(true); }
+   /// Deallocate all GPU buffers.
+   void free();
 
 protected:
    const Solution &solution;
@@ -39,12 +38,11 @@ protected:
    Program progVoxelize, progMarch;
    Program progDraw, progLines;
 
-   GLuint vao, triangleBuffer, lineBuffer;
-   GLuint voxelBuffer, counterBuffer;
+   Buffer bufVertices;
+   Buffer bufTables, bufCounters;
+   Buffer bufTriangles, bufLines;
 
-   Buffer bufTables;
-
-   void deleteBuffers(bool all);
+   GLuint vao;
 };
 
 

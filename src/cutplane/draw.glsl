@@ -5,7 +5,7 @@ out float solution;
 
 uniform mat4 mvp;
 
-layout(std430, binding = 0) buffer triangleBuffer
+layout(std430, binding = 0) buffer bufTriangles
 {
    vec4 vertices[];
 };

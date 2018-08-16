@@ -42,27 +42,22 @@ void SurfaceMesh::initializeGL(int order)
 
 void SurfaceMesh::tesselate(const SurfaceCoefs &coefs, int level)
 {
-   deleteBuffers();
-
    numFaces = coefs.numFaces();
    tessLevel = level;
 
    int faceVerts = sqr(level + 1);
-   long vertBufSize = 4*sizeof(float)*faceVerts*numFaces;
+   long vbSize = 4*sizeof(float)*faceVerts*numFaces;
 
-   glGenBuffers(1, &vertexBuffer);
-   glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
-   glBufferData(GL_SHADER_STORAGE_BUFFER, vertBufSize, NULL, GL_STATIC_DRAW);
-   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, vertexBuffer);
-
-   glBindBuffer(GL_SHADER_STORAGE_BUFFER, coefs.buffer());
-   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, coefs.buffer());
+   bufVertices.resize(vbSize);
 
    progCompute.use();
    glUniform1i(progCompute.uniform("level"), level);
    glUniform1f(progCompute.uniform("invLevel"), 1.0 / level);
 
    lagrangeUniforms(progCompute, solution.order(), solution.nodes1d());
+
+   coefs.buffer().bind(0);
+   bufVertices.bind(1);
 
    // launch the compute shader
    // TODO: group size 32 in Z
@@ -111,10 +106,7 @@ void SurfaceMesh::makeQuadFaceIndexBuffers(int level)
       }
    }
 
-   glGenBuffers(1, &indexBuffer);
-   glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
-   glBufferData(GL_SHADER_STORAGE_BUFFER, 3*nTri*sizeof(int), indices,
-                GL_STATIC_DRAW);
+   bufIndices.upload(indices, 3*nTri*sizeof(int));
 
    n = 0;
    for (int i = 0; i < level; i++)
@@ -132,10 +124,7 @@ void SurfaceMesh::makeQuadFaceIndexBuffers(int level)
       indices[n++] = (level+1)*(i+1) + level;
    }
 
-   glGenBuffers(1, &lineBuffer);
-   glBindBuffer(GL_SHADER_STORAGE_BUFFER, lineBuffer);
-   glBufferData(GL_SHADER_STORAGE_BUFFER, 2*nLines*sizeof(int), indices,
-                GL_STATIC_DRAW);
+   bufLineIndices.upload(indices, 2*nLines*sizeof(int));
 
    delete [] indices;
 }
@@ -155,11 +144,8 @@ void SurfaceMesh::draw(const glm::mat4 &mvp, const glm::vec4 &clipPlane,
    glUniform3fv(progDraw.uniform("palette"), RGB_Palette_3_Size,
                 (const float*) RGB_Palette_3);
 
-   glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
-   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertexBuffer);
-
-   glBindBuffer(GL_SHADER_STORAGE_BUFFER, indexBuffer);
-   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indexBuffer);
+   bufVertices.bind(0);
+   bufIndices.bind(1);
 
    glBindVertexArray(vao);
    glDrawArraysInstanced(GL_TRIANGLES, 0, 3*nFaceTri, numFaces);
@@ -171,20 +157,11 @@ void SurfaceMesh::draw(const glm::mat4 &mvp, const glm::vec4 &clipPlane,
       glUniform1i(progLines.uniform("nFaceVert"), nFaceVert);
       glUniform4fv(progDraw.uniform("clipPlane"), 1, glm::value_ptr(clipPlane));
 
-      glBindBuffer(GL_SHADER_STORAGE_BUFFER, vertexBuffer);
-      glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vertexBuffer);
-
-      glBindBuffer(GL_SHADER_STORAGE_BUFFER, lineBuffer);
-      glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, lineBuffer);
+      bufVertices.bind(0);
+      bufLineIndices.bind(1);
 
       glBindVertexArray(vao);
       glDrawArraysInstanced(GL_LINES, 0, 2*nFaceLines, numFaces);
    }
 }
 
-
-void SurfaceMesh::deleteBuffers()
-{
-   GLuint buf[3] = { vertexBuffer, indexBuffer, lineBuffer };
-   glDeleteBuffers(3, buf);
-}

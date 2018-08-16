@@ -8,12 +8,12 @@ uniform mat4 mvp;
 uniform int nFaceVert;
 uniform vec4 clipPlane;
 
-layout(std430, binding = 0) buffer vertexBuffer
+layout(std430, binding = 0) buffer bufVertices
 {
    vec4 vertices[];
 };
 
-layout(std430, binding = 1) buffer indexBuffer
+layout(std430, binding = 1) buffer bufIndices
 {
    int indices[];
 };

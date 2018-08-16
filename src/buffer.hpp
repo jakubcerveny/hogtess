@@ -1,6 +1,8 @@
 #ifndef hogtess_buffer_hpp_included_
 #define hogtess_buffer_hpp_included_
 
+//#include <iostream>
+
 #include <GL/gl.h>
 
 
@@ -10,13 +12,13 @@
 class Buffer
 {
 public:
-   Buffer(GLenum usage = GL_DYNAMIC_DRAW)
+   Buffer(GLenum usage = GL_STATIC_DRAW)
       : id_(0), size_(0), usage_(usage)
    {}
 
    ~Buffer() { discard(); }
 
-   void bind(GLuint location)
+   void bind(GLuint location) const
    {
       genBind();
       glBindBufferBase(target, location, id_);
@@ -26,21 +28,27 @@ public:
 
    void resize(long size)
    {
-      genBind();
-      glBufferData(target, size, NULL, usage_);
-      size_ = size;
+      if (size != size_)
+      {
+         genBind();
+         //std::cout << "Allocating buffer, size " << size << std::endl;
+         glBufferData(target, size, NULL, usage_);
+         // TODO: error checking
+         size_ = size;
+      }
    }
 
    void upload(const void* data, long size, long offset = 0)
    {
       genBind();
-      if (offset + size > size_) {
+      if (offset + size > size_)
+      {
          resize(offset + size);
       }
       glBufferSubData(target, offset, size, data);
    }
 
-   void download(void* data, long size, long offset = 0)
+   void download(void* data, long size, long offset = 0) const
    {
       genBind();
       glGetBufferSubData(target, offset, size, data);
@@ -52,17 +60,18 @@ public:
       {
          glDeleteBuffers(1, &id_);
          id_ = 0;
+         size_ = 0;
       }
    }
 
 protected:
    enum { target = GL_SHADER_STORAGE_BUFFER };
 
-   GLuint id_;
+   mutable GLuint id_;
    GLenum usage_;
    GLsizeiptr size_;
 
-   void genBind()
+   void genBind() const
    {
       if (!id_) {
          glGenBuffers(1, &id_);

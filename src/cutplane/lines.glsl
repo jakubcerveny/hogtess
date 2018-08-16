@@ -3,7 +3,7 @@
 
 uniform mat4 mvp;
 
-layout(std430, binding = 0) buffer lineBuffer
+layout(std430, binding = 0) buffer bufLines
 {
    vec4 vertices[];
 };

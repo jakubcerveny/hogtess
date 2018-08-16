@@ -4,12 +4,12 @@ layout(local_size_x = 1,
        local_size_y = 1,
        local_size_z = 32) in;
 
-layout(std430, binding = 0) buffer coefBuffer
+layout(std430, binding = 0) buffer bufCoefs
 {
    vec4 coefs[];
 };
 
-layout(std430, binding = 1) buffer vertexBuffer
+layout(std430, binding = 1) buffer bufVertices
 {
    vec4 vertices[];
 };

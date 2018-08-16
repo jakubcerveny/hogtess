@@ -5,28 +5,28 @@ layout(local_size_x = 1,
        local_size_y = 1,
        local_size_z = 1) in;
 
-layout(std430, binding = 0) buffer voxelBuffer
+layout(std430, binding = 0) buffer bufVertices
 {
    vec4 vertices[];
 };
 
-layout(std430, binding = 1) buffer tablesBuffer
+layout(std430, binding = 1) buffer bufTables
 {
    int edgeTable[256];
    int triTable[256][16];
 };
 
-layout(std430, binding = 2) buffer triangleBuffer
+layout(std430, binding = 2) buffer bufTriangles
 {
    vec4 outVertices[];
 };
 
-layout(std430, binding = 3) buffer lineBuffer
+layout(std430, binding = 3) buffer bufLines
 {
    vec4 outLines[];
 };
 
-layout(std430, binding = 4) buffer counterBuffer
+layout(std430, binding = 4) buffer bufCounters
 {
    uint totalVertices, totalLines;
 };
@@ -87,7 +87,7 @@ void main()
       return;
    }
 
-   // for each vertex, create a bitmask for the 6 boundary planes of the element
+   // for each vertex, check if it touches the 6 boundary planes of the element
    uint vmask[8], emask[12];
    uvec3 lo = uvec3(0, 0, 0);
    uvec3 hi = uvec3(level, level, level);

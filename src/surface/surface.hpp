@@ -18,34 +18,31 @@ class SurfaceMesh
 public:
    SurfaceMesh(const Solution &solution)
       : solution(solution)
-      , numFaces(0), tessLevel(0)
-      , vao(0), vertexBuffer(0)
-      , indexBuffer(0), lineBuffer(0)
+      , numFaces(0), tessLevel(0), vao(0)
    {}
 
    /// Compile shaders.
    void initializeGL(int order);
 
    /** Tesselate the surface. The specified subdivision level should be a
-       multiple of 2. This function can only be called once (or when 'level'
-       changes). */
+       multiple of 2. This function may only be called when 'level' changes. */
    void tesselate(const SurfaceCoefs &coefs, int level);
 
    /// Draw the tesselated faces. Can be called many times.
    void draw(const glm::mat4 &mvp, const glm::vec4 &clipPlane, bool lines);
-
-   virtual ~SurfaceMesh() { deleteBuffers(); }
 
 protected:
    const Solution &solution;
    int numFaces, tessLevel;
 
    Program progCompute, progDraw, progLines;
-   GLuint vao, vertexBuffer;
-   GLuint indexBuffer, lineBuffer;
+
+   Buffer bufVertices;
+   Buffer bufIndices, bufLineIndices;
+
+   GLuint vao;
 
    void makeQuadFaceIndexBuffers(int level);
-   void deleteBuffers();
 };
 
 

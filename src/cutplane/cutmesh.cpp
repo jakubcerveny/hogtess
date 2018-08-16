@@ -48,11 +48,6 @@ void CutPlaneMesh::initializeGL(int order)
    }
    bufTables.upload(&mcTables, sizeof(mcTables));
 
-   // atomic counter buffer
-   glGenBuffers(1, &counterBuffer);
-   glBindBuffer(SSBO, counterBuffer);
-   glBufferData(SSBO, 2*sizeof(int), NULL, GL_STATIC_DRAW);
-
    // create an empty VAO
    glGenVertexArrays(1, &vao);
 }
@@ -61,7 +56,7 @@ void CutPlaneMesh::initializeGL(int order)
 void CutPlaneMesh::compute(const VolumeCoefs &coefs,
                            const glm::vec4 &clipPlane, int level)
 {
-   deleteBuffers(false);
+   const long MB = 1024*1024;
 
    subdivLevel = level;
    int numElems = coefs.numElements();
@@ -73,23 +68,22 @@ void CutPlaneMesh::compute(const VolumeCoefs &coefs,
    glUniform1i(progVoxelize.uniform("level"), level);
    glUniform1f(progVoxelize.uniform("invLevel"), 1.0 / level);
 
+   lagrangeUniforms(progVoxelize, solution.order(), solution.nodes1d());
+
    int lsize[3];
    progVoxelize.localSize(lsize);
    int sizeZ = roundUpMultiple(numElems*(level+1), lsize[2]);
 
-   long vbufSize = 4*sizeof(float)*sqr(level+1)*sizeZ;
-   std::cout << "Voxel buffer size: "
-             << double(vbufSize) / 1024 / 1024 << " MB." << std::endl;
+   // prepare a buffer for voxel vertices, try to reuse the buffer if possible
+   long vbSize = 4*sizeof(float)*sqr(level+1)*sizeZ;
+   if (bufVertices.size() < vbSize)
+   {
+      std::cout << "Voxel buffer size: " << double(vbSize)/MB << " MB." << std::endl;
+      bufVertices.resize(vbSize);
+   }
 
-   glGenBuffers(1, &voxelBuffer);
-   glBindBuffer(SSBO, voxelBuffer);
-   glBufferData(SSBO, vbufSize, NULL, GL_DYNAMIC_COPY);
-   glBindBufferBase(SSBO, 1, voxelBuffer);
-
-   glBindBuffer(SSBO, coefs.buffer());
-   glBindBufferBase(SSBO, 0, coefs.buffer());
-
-   lagrangeUniforms(progVoxelize, solution.order(), solution.nodes1d());
+   coefs.buffer().bind(0);
+   bufVertices.bind(1);
 
    // launch the compute shader
    int groupsZ = divRoundUp((level+1)*numElems, lsize[2]);
@@ -98,47 +92,58 @@ void CutPlaneMesh::compute(const VolumeCoefs &coefs,
 
 
    // STEP 2: use marching cubes to extract the mesh of the cut plane
-   // TODO: keep buffers allocated
 
-   progMarch.use();
-   glUniform1i(progMarch.uniform("level"), level);
-   glUniform4fv(progMarch.uniform("clipPlane"), 1, glm::value_ptr(clipPlane));
+   while (1)
+   {
+      // start with big enough buffers
+      bufTriangles.resize(std::max(bufTriangles.size(), 2*MB));
+      bufLines.resize(std::max(bufLines.size(), 1*MB));
 
-   glBindBuffer(SSBO, voxelBuffer);
-   glBindBufferBase(SSBO, 0, voxelBuffer);
+      progMarch.use();
+      glUniform1i(progMarch.uniform("level"), level);
+      glUniform4fv(progMarch.uniform("clipPlane"), 1, glm::value_ptr(clipPlane));
 
-   bufTables.bind(1);
+      bufVertices.bind(0);
+      bufTables.bind(1);
+      bufTriangles.bind(2);
+      bufLines.bind(3);
 
-   // buffer to store generated triangles (triples of vertices)
-   glGenBuffers(1, &triangleBuffer);
-   glBindBuffer(SSBO, triangleBuffer);
-   glBufferData(SSBO, 16*1024*1024/*FIXME*/*sizeof(float), NULL, GL_DYNAMIC_COPY);
-   glBindBufferBase(SSBO, 2, triangleBuffer);
+      // reset the atomic counters
+      counters[0] = counters[1] = 0;
+      bufCounters.upload(counters, 2*sizeof(int));
+      bufCounters.bind(4);
 
-   // buffer to store generated lines (pairs of vertices)
-   glGenBuffers(1, &lineBuffer);
-   glBindBuffer(SSBO, lineBuffer);
-   glBufferData(SSBO, 4*1024*1024/*FIXME*/*sizeof(float), NULL, GL_DYNAMIC_COPY);
-   glBindBufferBase(SSBO, 3, lineBuffer);
+      // launch the compute shader and wait for completion
+      glDispatchCompute(level, level, level*numElems);
+      glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 
-   // reset the atomic counters
-   counters[0] = counters[1] = 0;
-   glBindBuffer(SSBO, counterBuffer);
-   glBufferSubData(SSBO, 0, 2*sizeof(int), counters);
-   glBindBufferBase(SSBO, 4, counterBuffer);
+      // read the number of vertices generated
+      bufCounters.download(counters, 2*sizeof(int));
 
-   // launch the compute shader and wait for completion
-   glDispatchCompute(level, level, level*numElems);
-   glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+      long tsize = counters[0] * 4*sizeof(float);
+      long lsize = counters[1] * 4*sizeof(float);
 
-   // read the number of vertices generated
-   glBindBuffer(GL_SHADER_STORAGE_BUFFER, counterBuffer);
-   glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 2*sizeof(int), counters);
+      if (tsize <= bufTriangles.size() &&
+          lsize <= bufLines.size())
+      {
+         // good, buffers were large enough, we're done
+         break;
+      }
 
-   std::cout << "counters: " << counters[0] << ", " << counters[1] << std::endl;
-
-   glDeleteBuffers(1, &voxelBuffer);
-   voxelBuffer = 0;
+      // enlarge the buffers and try again
+      if (tsize > bufTriangles.size())
+      {
+         bufTriangles.resize(2*bufTriangles.size());
+         std::cout << "Triangle buffer size: "
+                   << double(bufTriangles.size())/MB << " MB." << std::endl;
+      }
+      if (lsize > bufLines.size())
+      {
+         bufLines.resize(2*bufLines.size());
+         std::cout << "Line buffer size: "
+                   << double(bufLines.size())/MB << " MB." << std::endl;
+      }
+   }
 }
 
 
@@ -149,8 +154,7 @@ void CutPlaneMesh::draw(const glm::mat4 &mvp, bool lines)
    glUniform3fv(progDraw.uniform("palette"), RGB_Palette_3_Size,
                 (const float*) RGB_Palette_3);
 
-   glBindBuffer(SSBO, triangleBuffer);
-   glBindBufferBase(SSBO, 0, triangleBuffer);
+   bufTriangles.bind(0);
 
    glBindVertexArray(vao);
    glDrawArrays(GL_TRIANGLES, 0, counters[0]);
@@ -160,8 +164,7 @@ void CutPlaneMesh::draw(const glm::mat4 &mvp, bool lines)
       progLines.use();
       glUniformMatrix4fv(progLines.uniform("mvp"), 1, GL_FALSE, glm::value_ptr(mvp));
 
-      glBindBuffer(SSBO, lineBuffer);
-      glBindBufferBase(SSBO, 0, lineBuffer);
+      bufLines.bind(0);
 
       glBindVertexArray(vao);
       glDrawArrays(GL_LINES, 0, counters[1]);
@@ -169,15 +172,11 @@ void CutPlaneMesh::draw(const glm::mat4 &mvp, bool lines)
 }
 
 
-void CutPlaneMesh::deleteBuffers(bool all)
+void CutPlaneMesh::free()
 {
-   glDeleteBuffers(1, &triangleBuffer);
-   glDeleteBuffers(1, &lineBuffer);
-
-   if (all)
-   {
-      glDeleteBuffers(1, &voxelBuffer);
-      //glDeleteBuffers(1, &tableBuffer);
-      glDeleteBuffers(1, &counterBuffer);
-   }
+   bufVertices.discard();
+   bufCounters.discard();
+   bufTriangles.discard();
+   bufLines.discard();
+   // NOTE: not discarding bufTables
 }
