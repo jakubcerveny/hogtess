@@ -147,8 +147,14 @@ void SurfaceMesh::draw(const glm::mat4 &mvp, const glm::vec4 &clipPlane,
    bufVertices.bind(0);
    bufIndices.bind(1);
 
+   glEnable(GL_POLYGON_OFFSET_FILL);
+   glPolygonOffset(1, 1); // push triangles behind lines
+
    glBindVertexArray(vao);
    glDrawArraysInstanced(GL_TRIANGLES, 0, 3*nFaceTri, numFaces);
+
+   glDisable(GL_POLYGON_OFFSET_FILL);
+   glPolygonOffset(0, 0);
 
    if (lines)
    {

@@ -156,8 +156,14 @@ void CutPlaneMesh::draw(const glm::mat4 &mvp, bool lines)
 
    bufTriangles.bind(0);
 
+   glEnable(GL_POLYGON_OFFSET_FILL);
+   glPolygonOffset(1, 1); // push triangles behind lines
+
    glBindVertexArray(vao);
    glDrawArrays(GL_TRIANGLES, 0, counters[0]);
+
+   glDisable(GL_POLYGON_OFFSET_FILL);
+   glPolygonOffset(0, 0);
 
    if (lines)
    {
