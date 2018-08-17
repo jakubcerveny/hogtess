@@ -53,20 +53,66 @@ void CutPlaneMesh::initializeGL(int order)
 }
 
 
+bool boxCut(const BBox<float> &box, const glm::vec4 clipPlane, float eps = 1e-3)
+{
+   float corners[8][3] =
+   {
+      { box.min[0], box.min[1], box.min[2] },
+      { box.max[0], box.min[1], box.min[2] },
+      { box.min[0], box.max[1], box.min[2] },
+      { box.max[0], box.max[1], box.min[2] },
+      { box.min[0], box.min[1], box.max[2] },
+      { box.max[0], box.min[1], box.max[2] },
+      { box.min[0], box.max[1], box.max[2] },
+      { box.max[0], box.max[1], box.max[2] }
+   };
+
+   int pos = 0, neg = 0;
+   for (int i = 0; i < 8; i++)
+   {
+      float d = corners[i][0] * clipPlane.x +
+                corners[i][1] * clipPlane.y +
+                corners[i][2] * clipPlane.z + clipPlane.w;
+
+      if (d > -eps) { pos++; }
+      if (d < eps) { neg++; }
+
+      if (pos && neg) { return true; }
+   }
+
+   return false; // all on positive or all on negative side
+}
+
+
 void CutPlaneMesh::compute(const VolumeCoefs &coefs,
                            const glm::vec4 &clipPlane, int level)
 {
    const long MB = 1024*1024;
 
    subdivLevel = level;
-   int numElems = coefs.numElements();
 
-   // STEP 1: compute vertices of a 3D subdivision of the elements
-   // TODO: do this only for elements whose bounding box is cut
+   // STEP 1: determine which elements need to be processed. It's the ones
+   //         whose bounding box intersects the clipping plane
+
+   std::vector<int> elemIndices;
+   for (int i = 0; i < coefs.numElements(); i++)
+   {
+      if (boxCut(coefs.boundingBox(i), clipPlane))
+      {
+         elemIndices.push_back(i);
+      }
+   }
+   int numElems = elemIndices.size();
+
+   bufElemIndices.upload(elemIndices.data(), numElems*sizeof(int));
+
+
+   // STEP 2: compute the vertices of a 3D subdivision of selected elements
 
    progVoxelize.use();
    glUniform1i(progVoxelize.uniform("level"), level);
    glUniform1f(progVoxelize.uniform("invLevel"), 1.0 / level);
+   glUniform1i(progVoxelize.uniform("numElems"), numElems);
 
    lagrangeUniforms(progVoxelize, solution.order(), solution.nodes1d());
 
@@ -83,7 +129,8 @@ void CutPlaneMesh::compute(const VolumeCoefs &coefs,
    }
 
    coefs.buffer().bind(0);
-   bufVertices.bind(1);
+   bufElemIndices.bind(1);
+   bufVertices.bind(2);
 
    // launch the compute shader
    int groupsZ = divRoundUp((level+1)*numElems, lsize[2]);
@@ -91,7 +138,7 @@ void CutPlaneMesh::compute(const VolumeCoefs &coefs,
    glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 
 
-   // STEP 2: use marching cubes to extract the mesh of the cut plane
+   // STEP 3: use marching cubes to extract the mesh of the cut plane
 
    while (1)
    {
@@ -180,6 +227,7 @@ void CutPlaneMesh::draw(const glm::mat4 &mvp, bool lines)
 
 void CutPlaneMesh::free()
 {
+   bufElemIndices.discard();
    bufVertices.discard();
    bufCounters.discard();
    bufTriangles.discard();

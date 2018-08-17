@@ -1,11 +1,16 @@
 #ifndef hogtess_input_mfem_hpp_included_
 #define hogtess_input_mfem_hpp_included_
 
-#include "mfem.hpp"
-
 #include <string>
 
 #include "input.hpp"
+
+
+namespace mfem // forwards
+{
+class Mesh;
+class GridFunction;
+}
 
 
 class MFEMSolution : public Solution

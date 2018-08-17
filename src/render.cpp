@@ -92,7 +92,7 @@ void RenderWidget::updateClipPlane()
    clipPlane.x = cos(phi)*cos(theta);
    clipPlane.y = sin(phi);
    clipPlane.z = -sin(theta);
-   clipPlane.w = -0.005 * clipZ;
+   clipPlane.w = -0.005 * clipZ + 1e-6;
 }
 
 

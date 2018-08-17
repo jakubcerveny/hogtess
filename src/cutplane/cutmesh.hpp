@@ -38,7 +38,7 @@ protected:
    Program progVoxelize, progMarch;
    Program progDraw, progLines;
 
-   Buffer bufVertices;
+   Buffer bufElemIndices, bufVertices;
    Buffer bufTables, bufCounters;
    Buffer bufTriangles, bufLines;
 

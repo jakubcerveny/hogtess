@@ -1,6 +1,9 @@
 #ifndef hogtess_input_hpp_included_
 #define hogtess_input_hpp_included_
 
+#include <vector>
+#include <limits>
+
 #include "buffer.hpp"
 
 
@@ -50,7 +53,6 @@ public:
 
    int numFaces() const { return nf_; }
 
-   Buffer& buffer() { return buffer_; }
    const Buffer& buffer() const { return buffer_; }
 
    virtual ~SurfaceCoefs() {}
@@ -58,6 +60,26 @@ public:
 protected:
    int nf_;
    Buffer buffer_;
+};
+
+
+/// Axis-aligned bounding box
+template<typename Type>
+struct BBox
+{
+   Type min[3], max[3];
+
+   BBox()
+   {
+      min[0] = min[1] = min[2] = std::numeric_limits<Type>::max();
+      max[0] = max[1] = max[2] = std::numeric_limits<Type>::lowest();
+   }
+
+   void update(Type x, int axis)
+   {
+      min[axis] = std::min(x, min[axis]);
+      max[axis] = std::max(x, max[axis]);
+   }
 };
 
 
@@ -78,14 +100,17 @@ public:
 
    int numElements() const { return ne_; }
 
-   Buffer& buffer() { return buffer_; }
    const Buffer& buffer() const { return buffer_; }
+
+   /// Return approximate element bounding box (for speeding up mesh cutting)
+   const BBox<float>& boundingBox(int i) const { return boxes_[i]; }
 
    virtual ~VolumeCoefs() {}
 
 protected:
    int ne_;
    Buffer buffer_;
+   std::vector<BBox<float> > boxes_;
 };
 
 

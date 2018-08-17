@@ -9,13 +9,19 @@ layout(std430, binding = 0) buffer bufCoefs
    vec4 coefs[];
 };
 
-layout(std430, binding = 1) buffer bufVertices
+layout(std430, binding = 1) buffer bufElemIndices
+{
+   uint elemIndices[];
+};
+
+layout(std430, binding = 2) buffer bufVertices
 {
    vec4 vertices[];
 };
 
 uniform int level;
 uniform float invLevel;
+uniform int numElems;
 
 void main()
 {
@@ -26,7 +32,10 @@ void main()
    uint tessY = gl_GlobalInvocationID.y;
    uint tessZ = gl_GlobalInvocationID.z % (level+1);
    uint elemIdx = gl_GlobalInvocationID.z / (level+1);
-   uint base = elemIdx * ndof;
+
+   if (elemIdx >= numElems) { return; }
+
+   uint coefBase = elemIndices[elemIdx] * ndof;
 
    float u = tessX * invLevel;
    float v = tessY * invLevel;
@@ -42,7 +51,7 @@ void main()
    for (int j = 0; j <= P; j++)
    for (int k = 0; k <= P; k++)
    {
-       vec4 coef = coefs[base + (P+1)*((P+1)*i + j) + k];
+       vec4 coef = coefs[coefBase + (P+1)*((P+1)*i + j) + k];
        value += coef*ushape[i]*vshape[j]*wshape[k];
    }
 

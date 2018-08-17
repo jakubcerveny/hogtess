@@ -1,3 +1,5 @@
+#include "mfem.hpp"
+
 #include <fstream>
 
 #include "input-mfem.hpp"
@@ -216,8 +218,12 @@ void MFEMVolumeCoefs::extract(const Solution &solution)
                "Curvature currently must have the same space as the solution.");
 
    ne_ = mesh->GetNE();
+
    int ndof = sln_fe->GetDof();
    std::cout << "elem dofs: " << ndof << std::endl;
+
+   boxes_.clear();
+   boxes_.resize(ne_);
 
    Array<int> dofs, vdofs;
    const Array<int> &dof_map = sln_fe->GetDofMap();
@@ -255,7 +261,9 @@ void MFEMVolumeCoefs::extract(const Solution &solution)
          for (int j = 0; j < ndof; j++)
          {
             double c = (*nodes)(vdofs[dof_map[j]]);
-            coefs[4*j + vd] = (c + msln->normOffset(vd))*msln->normScale(vd);
+            c = (c + msln->normOffset(vd))*msln->normScale(vd);
+            coefs[4*j + vd] = c;
+            boxes_[i].update(c, vd);
          }
       }
    }
@@ -263,5 +271,4 @@ void MFEMVolumeCoefs::extract(const Solution &solution)
    // upload to a shader buffer
    buffer_.upload(elem_coefs.data(), elem_coefs.size()*sizeof(float));
 }
-
 

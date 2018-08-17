@@ -1,0 +1,19 @@
+TODO:
+
+- bounding boxes to speed up cutting
+- fix internal faces
+- per pixel solution evaluation
+- parallel solutions
+- discontinuous solutions
+- vector solutions (drawing magnitude, x, y, z)
+- isosurface
+- H(curl)/H(div) solutions
+- tets
+
+DONE: 
+
+- fix Z fighting between mesh triangles and lines
+- better buffer management
+- fix mesh lines generation on cut the plane
+- handle cut plane lines
+- cut plane 
