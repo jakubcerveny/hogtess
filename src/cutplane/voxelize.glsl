@@ -1,8 +1,8 @@
 #line 2
 
-layout(local_size_x = 1,
+layout(local_size_x = 32,
        local_size_y = 1,
-       local_size_z = 32) in;
+       local_size_z = 1) in;
 
 layout(std430, binding = 0) buffer bufCoefs
 {
@@ -28,10 +28,10 @@ void main()
    const int ndof = (P+1)*(P+1)*(P+1);
    const int elemVert = (level+1)*(level+1)*(level+1);
 
-   uint tessX = gl_GlobalInvocationID.x;
+   uint tessX = gl_GlobalInvocationID.x % (level+1);
    uint tessY = gl_GlobalInvocationID.y;
-   uint tessZ = gl_GlobalInvocationID.z % (level+1);
-   uint elemIdx = gl_GlobalInvocationID.z / (level+1);
+   uint tessZ = gl_GlobalInvocationID.z;
+   uint elemIdx = gl_GlobalInvocationID.x / (level+1);
 
    if (elemIdx >= numElems) { return; }
 

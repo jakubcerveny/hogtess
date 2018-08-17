@@ -104,8 +104,10 @@ void RenderWidget::updateCutMesh()
       {
          volumeCoefs.extract(solution);
       }
+      tic();
       updateClipPlane();
       cutPlaneMesh.compute(volumeCoefs, clipPlane, tessLevel);
+      std::cout << "total cut compute: " << toc() << std::endl;
    }
    else if (clipMode == 0)
    {

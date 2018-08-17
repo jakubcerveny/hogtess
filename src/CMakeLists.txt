@@ -2,7 +2,6 @@
 set(hogtess_SOURCES
     cutplane/cutmesh.cpp
     cutplane/cutmesh.hpp
-    cutplane/draw.glsl
     input/input.hpp
     input/input-mfem.cpp
     input/input-mfem.hpp
@@ -10,6 +9,7 @@ set(hogtess_SOURCES
     surface/surface.hpp
     shape/shape.cpp
     shape/shape.hpp
+    buffer.hpp
     main.cpp
     main.hpp
     render.cpp
@@ -17,7 +17,8 @@ set(hogtess_SOURCES
     palette.cpp
     palette.hpp
     shader.hpp
-    buffer.hpp
+    utility.cpp
+    utility.hpp
 )
 
 set(hogtess_MOC_HEADERS

@@ -22,4 +22,8 @@ inline Int roundUpMultiple(Int x, Int mul)
 }
 
 
+void tic();
+double toc();
+
+
 #endif // hogtess_utility_hpp_included__

@@ -118,10 +118,10 @@ void CutPlaneMesh::compute(const VolumeCoefs &coefs,
 
    int lsize[3];
    progVoxelize.localSize(lsize);
-   int sizeZ = roundUpMultiple(numElems*(level+1), lsize[2]);
+   int sizeX = roundUpMultiple(numElems*(level+1), lsize[0]);
 
    // prepare a buffer for voxel vertices, try to reuse the buffer if possible
-   long vbSize = 4*sizeof(float)*sqr(level+1)*sizeZ;
+   long vbSize = 4*sizeof(float)*sizeX*sqr(level+1);
    if (bufVertices.size() < vbSize)
    {
       std::cout << "Voxel buffer size: " << double(vbSize)/MB << " MB." << std::endl;
@@ -133,8 +133,8 @@ void CutPlaneMesh::compute(const VolumeCoefs &coefs,
    bufVertices.bind(2);
 
    // launch the compute shader
-   int groupsZ = divRoundUp((level+1)*numElems, lsize[2]);
-   glDispatchCompute(level+1, level+1, groupsZ);
+   int groupsX = divRoundUp((level+1)*numElems, lsize[0]);
+   glDispatchCompute(groupsX, level+1, level+1);
    glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 
 
