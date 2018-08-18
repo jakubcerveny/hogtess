@@ -34,10 +34,16 @@ MFEMSolution::MFEMSolution(const std::string &meshPath,
    {
       mesh_->SetCurvature(order_);
    }
-   // TODO: project NURBS or elevate order of Nodes here, if needed
 
    const FiniteElement* meshFE =
       mesh_->GetNodes()->FESpace()->FEColl()->FiniteElementForGeometry(geom);
+
+   // elevate curvature if needed
+   if (meshFE->GetOrder() < order_)
+   {
+      mesh_->SetCurvature(order_);
+      meshFE = mesh_->GetNodes()->FESpace()->FEColl()->FiniteElementForGeometry(geom);
+   }
 
    MFEM_VERIFY(slnFE->GetDof() == meshFE->GetDof(),
                "Only isoparametric elements supported at the moment.");

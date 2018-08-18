@@ -1,6 +1,5 @@
 TODO:
 
-- bounding boxes to speed up cutting
 - fix internal faces
 - per pixel solution evaluation
 - parallel solutions
@@ -12,6 +11,7 @@ TODO:
 
 DONE: 
 
+- bounding boxes to speed up cutting
 - fix Z fighting between mesh triangles and lines
 - better buffer management
 - fix mesh lines generation on cut the plane
