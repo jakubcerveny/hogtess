@@ -13,15 +13,15 @@ MFEMSolution::MFEMSolution(const std::vector<std::string> &meshPaths,
 {
    MFEM_VERIFY(meshPaths.size() == solutionPaths.size(), "");
 
-   int nranks = meshPaths.size();
-   meshes_.resize(nranks);
-   solutions_.resize(nranks);
+   int numRanks = meshPaths.size();
+   meshes_.resize(numRanks);
+   solutions_.resize(numRanks);
 
    order_ = -1;
 
    // load mesh & solution for each rank
    OMP(parallel for schedule(dynamic))
-   for (int rank = 0; rank < nranks; rank++)
+   for (int rank = 0; rank < numRanks; rank++)
    {
       std::cout << "Loading " << meshPaths[rank] << std::endl;
       mfem::Mesh *mesh = new Mesh(meshPaths[rank].c_str());
@@ -87,8 +87,8 @@ MFEMSolution::MFEMSolution(const std::vector<std::string> &meshPaths,
 }
 
 
-void MFEMSolution::updateMinMaxDof(const GridFunction *gf, int vd,
-                                   double &min, double &max)
+void MFEMSolution::updateMinMax(const GridFunction *gf, int vd,
+                                double &min, double &max)
 {
    const auto *fes = gf->FESpace();
    for (int dof = 0; dof < fes->GetNDofs(); dof++)
@@ -112,9 +112,9 @@ void MFEMSolution::getMinMaxNorm()
       const auto *nodes = meshes_[rank]->GetNodes();
       for (int i = 0; i < nodes->FESpace()->GetVDim(); i++)
       {
-         updateMinMaxDof(nodes, i, min_[i], max_[i]);
+         updateMinMax(nodes, i, min_[i], max_[i]);
       }
-      updateMinMaxDof(solutions_[rank].get(), 0, min_[3], max_[3]);
+      updateMinMax(solutions_[rank].get(), 0, min_[3], max_[3]);
    }
    for (int i = 0; i < 4; i++)
    {
@@ -213,11 +213,11 @@ void MFEMSurfaceCoefs::extract(const Solution &solution)
    {
       const Mesh *mesh = msln->mesh(rank);
 
-      const auto *slnSpace = msln->solution(rank)->FESpace();
-      const auto *nodesSpace = mesh->GetNodes()->FESpace();
-
       const GridFunction *gf = msln->solution(rank);
       const GridFunction *nodes = mesh->GetNodes();
+
+      const auto *slnSpace = gf->FESpace();
+      const auto *nodesSpace = nodes->FESpace();
 
       Array<int> dofs, vdofs;
       const Array<int> &dofMap = fe->GetDofMap();
@@ -274,74 +274,100 @@ void MFEMVolumeCoefs::extract(const Solution &solution)
    const auto *msln = dynamic_cast<const MFEMSolution*>(&solution);
    MFEM_VERIFY(msln, "Not an MFEM solution!");
 
-   const Mesh *mesh = msln->mesh(0);
+   int numRanks = msln->numRanks();
 
-   const GridFunction *gf = msln->solution(0);
-   const GridFunction *nodes = msln->mesh(0)->GetNodes();
+   // check the finite element types
+   const H1_HexahedronElement* fe;
+   for (int rank = 0; rank < numRanks; rank++)
+   {
+      const auto *slnSpace = msln->solution(rank)->FESpace();
+      const auto *nodesSpace = msln->mesh(rank)->GetNodes()->FESpace();
 
-   const auto *sln_space = gf->FESpace();
-   const auto *nodes_space = nodes->FESpace();
+      const auto *slnFE = dynamic_cast<const H1_HexahedronElement*>(
+         slnSpace->FEColl()->FiniteElementForGeometry(Geometry::CUBE));
+      const auto *nodesFE = dynamic_cast<const H1_HexahedronElement*>(
+         nodesSpace->FEColl()->FiniteElementForGeometry(Geometry::CUBE));
 
-   const auto *sln_fe = dynamic_cast<const H1_HexahedronElement*>(
-      sln_space->FEColl()->FiniteElementForGeometry(Geometry::CUBE));
-   const auto *nodes_fe = dynamic_cast<const H1_HexahedronElement*>(
-      nodes_space->FEColl()->FiniteElementForGeometry(Geometry::CUBE));
+      MFEM_VERIFY(slnFE != NULL && nodesFE != NULL,
+                  "Only H1_HexahedronElement supported at the moment.");
+      MFEM_VERIFY(slnFE->GetDof() == nodesFE->GetDof(),
+                  "Curvature currently must have the same space as the solution.");
+      fe = slnFE;
+   }
 
-   MFEM_VERIFY(sln_fe != NULL && nodes_fe != NULL,
-               "Only H1_HexahedronElement supported at the moment.");
-   MFEM_VERIFY(sln_fe->GetDof() == nodes_fe->GetDof(),
-               "Curvature currently must have the same space as the solution.");
+   // count elements
+   std::vector<int> elemOffset(numRanks+1, 0);
+   for (int rank = 0; rank < numRanks; rank++)
+   {
+      const Mesh *mesh = msln->mesh(rank);
+      elemOffset[rank+1] = elemOffset[rank] + mesh->GetNE();
+   }
 
-   int ne = mesh->GetNE();
-   int ndof = sln_fe->GetDof();
-
-   rank_.clear();
-   rank_.resize(ne);
+   int numElems = elemOffset[numRanks];
+   rank_.resize(numElems);
 
    boxes_.clear();
-   boxes_.resize(ne);
+   boxes_.resize(numElems);
 
-   Array<int> dofs, vdofs;
-   const Array<int> &dof_map = sln_fe->GetDofMap();
+   // CPU instance of the coefficient buffer
+   int ndof = fe->GetDof();
+   std::vector<float> elemCoefs(4*numElems*ndof, 0.f);
 
-   std::vector<float> elem_coefs(4*ndof*ne, 0.f);
-
-   // extract element coefficients
-   for (int i = 0; i < ne; i++)
+   // extract coefficients
+   OMP(parallel for schedule(dynamic))
+   for (int rank = 0; rank < numRanks; rank++)
    {
-      float* coefs = &(elem_coefs[4*ndof*i]);
+      const Mesh *mesh = msln->mesh(rank);
 
-      sln_space->GetElementDofs(i, dofs);
-      MFEM_ASSERT(dofs.Size() == ndof, "");
+      const GridFunction *gf = msln->solution(rank);
+      const GridFunction *nodes = msln->mesh(rank)->GetNodes();
 
-      dofs.Copy(vdofs);
-      sln_space->DofsToVDofs(0, vdofs);
+      const auto *slnSpace = gf->FESpace();
+      const auto *nodesSpace = nodes->FESpace();
 
-      for (int j = 0; j < ndof; j++)
+      Array<int> dofs, vdofs;
+      const Array<int> &dofMap = fe->GetDofMap();
+
+      // extract element coefficients
+      for (int i = 0; i < mesh->GetNE(); i++)
       {
-         double c = (*gf)(vdofs[dof_map[j]]);
-         coefs[4*j + 3] = (c + msln->normOffset(3))*msln->normScale(3);
-      }
+         int ei = elemOffset[rank] + i;
+         rank_[ei] = rank;
 
-      nodes_space->GetElementDofs(i, dofs);
-      MFEM_ASSERT(dofs.Size() == ndof, "");
+         float* coefs = &(elemCoefs[4*ei*ndof]);
 
-      for (int vd = 0; vd < nodes_space->GetVDim(); vd++)
-      {
+         slnSpace->GetElementDofs(i, dofs);
+         MFEM_ASSERT(dofs.Size() == ndof, "");
+
          dofs.Copy(vdofs);
-         nodes_space->DofsToVDofs(vd, vdofs);
+         slnSpace->DofsToVDofs(0, vdofs);
 
          for (int j = 0; j < ndof; j++)
          {
-            double c = (*nodes)(vdofs[dof_map[j]]);
-            c = (c + msln->normOffset(vd))*msln->normScale(vd);
-            coefs[4*j + vd] = c;
-            boxes_[i].update(c, vd);
+            double c = (*gf)(vdofs[dofMap[j]]);
+            coefs[4*j + 3] = (c + msln->normOffset(3))*msln->normScale(3);
+         }
+
+         nodesSpace->GetElementDofs(i, dofs);
+         MFEM_ASSERT(dofs.Size() == ndof, "");
+
+         for (int vd = 0; vd < nodesSpace->GetVDim(); vd++)
+         {
+            dofs.Copy(vdofs);
+            nodesSpace->DofsToVDofs(vd, vdofs);
+
+            for (int j = 0; j < ndof; j++)
+            {
+               double c = (*nodes)(vdofs[dofMap[j]]);
+               c = (c + msln->normOffset(vd))*msln->normScale(vd);
+               coefs[4*j + vd] = c;
+               boxes_[ei].update(c, vd);
+            }
          }
       }
    }
 
    // upload to a shader buffer
-   buffer_.upload(elem_coefs.data(), elem_coefs.size()*sizeof(float));
+   buffer_.upload(elemCoefs.data(), elemCoefs.size()*sizeof(float));
 }
 

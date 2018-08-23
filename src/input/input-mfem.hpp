@@ -46,8 +46,8 @@ protected:
    double scale_[4], offset_[4];
 
    void getMinMaxNorm();
-   void updateMinMaxDof(const mfem::GridFunction *gf,
-                        int vd, double &min, double &max);
+   void updateMinMax(const mfem::GridFunction *gf,
+                     int vd, double &min, double &max);
 };
 
 
