@@ -3,86 +3,93 @@
 #include <fstream>
 
 #include "input-mfem.hpp"
+#include "utility.hpp"
 
 using namespace mfem;
 
 
-MFEMSolution::MFEMSolution(const std::string &meshPath,
-                           const std::string &solutionPath)
-   : mesh_(nullptr)
-   , solution_(nullptr)
+MFEMSolution::MFEMSolution(const std::vector<std::string> &meshPaths,
+                           const std::vector<std::string> &solutionPaths)
 {
-   std::cout << "Loading mesh: " << meshPath << std::endl;
-   mesh_ = new Mesh(meshPath.c_str());
+   MFEM_VERIFY(meshPaths.size() == solutionPaths.size(), "");
 
-   int geom = Geometry::CUBE;
-   MFEM_VERIFY(mesh_->Dimension() == 3 || mesh_->GetElementBaseGeometry() == geom,
-               "Only 3D hexes supported so far, sorry.");
+   int nranks = meshPaths.size();
+   meshes_.resize(nranks);
+   solutions_.resize(nranks);
 
-   std::cout << "Loading solution: " << solutionPath << std::endl;
-   std::ifstream is(solutionPath.c_str());
-   solution_ = new GridFunction(mesh_, is);
-   is.close();
+   order_ = -1;
 
-   const FiniteElement* slnFE =
-      solution_->FESpace()->FEColl()->FiniteElementForGeometry(geom);
+   // load mesh & solution for each rank
+   OMP(parallel for schedule(dynamic))
+   for (int rank = 0; rank < nranks; rank++)
+   {
+      std::cout << "Loading " << meshPaths[rank] << std::endl;
+      mfem::Mesh *mesh = new Mesh(meshPaths[rank].c_str());
 
-   order_ = slnFE->GetOrder();
+      int geom = Geometry::CUBE;
+      MFEM_VERIFY(mesh->Dimension() == 3 &&
+                  mesh->GetElementBaseGeometry() == geom,
+                  "Only 3D hexes supported so far, sorry.");
+
+      std::cout << "Loading " << solutionPaths[rank] << std::endl;
+      std::ifstream is(solutionPaths[rank].c_str());
+      mfem::GridFunction *sln = new GridFunction(mesh, is);
+      is.close();
+
+      const FiniteElement* slnFE =
+         sln->FESpace()->FEColl()->FiniteElementForGeometry(geom);
+
+      int order = slnFE->GetOrder();
+
+      OMP(critical)
+      {
+         if (order_ < 0) {
+            order_ = order;
+         }
+         else {
+            MFEM_VERIFY(order == order_,
+                        "All solutions must have the same polynomial order.");
+         }
+      }
+
+      // ensure the mesh has Nodes
+      if (mesh->GetNodes() == NULL)
+      {
+         mesh->SetCurvature(order);
+      }
+
+      const FiniteElement* meshFE =
+         mesh->GetNodes()->FESpace()->FEColl()->FiniteElementForGeometry(geom);
+
+      // elevate degree of Nodes, if needed
+      if (meshFE->GetOrder() < order)
+      {
+         mesh->SetCurvature(order);
+         meshFE = mesh->GetNodes()->FESpace()->FEColl()
+               ->FiniteElementForGeometry(geom);
+      }
+
+      MFEM_VERIFY(slnFE->GetDof() == meshFE->GetDof(),
+                  "Only isoparametric elements are supported at the moment.");
+
+      meshes_[rank].reset(mesh);
+      solutions_[rank].reset(sln);
+   }
+
    std::cout << "Polynomial order: " << order_ << std::endl;
 
-   if (mesh_->GetNodes() == NULL)
-   {
-      mesh_->SetCurvature(order_);
-   }
-
-   const FiniteElement* meshFE =
-      mesh_->GetNodes()->FESpace()->FEColl()->FiniteElementForGeometry(geom);
-
-   // elevate curvature if needed
-   if (meshFE->GetOrder() < order_)
-   {
-      mesh_->SetCurvature(order_);
-      meshFE = mesh_->GetNodes()->FESpace()->FEColl()->FiniteElementForGeometry(geom);
-   }
-
-   MFEM_VERIFY(slnFE->GetDof() == meshFE->GetDof(),
-               "Only isoparametric elements supported at the moment.");
-
-   // calculate the approximate min/max of the solution and the domain
-   for (int i = 0; i < 4; i++)
-   {
-      min_[i] = max_[i] = 0;
-   }
-   for (int i = 0; i < mesh_->GetNodes()->FESpace()->GetVDim(); i++)
-   {
-      getMinMax(mesh_->GetNodes(), i, min_[i], max_[i]);
-   }
-   getMinMax(solution_, 0, min_[3], max_[3]);
-
-   // calculate normalization coefficients
-   offset_[3] = -min_[3];
-   scale_[3] = 1.0 / (max_[3] - min_[3]);
-
-   double max_size = 0.;
-   for (int i = 0; i < 3; i++)
-   {
-      offset_[i] = -0.5*(min_[i] + max_[i]);
-      double size = max_[i] - min_[i];
-      max_size = std::max(size, max_size);
-   }
-   scale_[0] = scale_[1] = scale_[2] = 1.0 / max_size;
+   // calculate min/max and normalization
+   getMinMaxNorm();
 
    // nodal points
-   nodes1d_ = mfem::poly1d.ClosedPoints(order_, mfem::Quadrature1D::GaussLobatto);
+   nodes1d_ = mfem::poly1d.ClosedPoints
+         (order_, mfem::Quadrature1D::GaussLobatto);
 }
 
 
-void MFEMSolution::getMinMax(GridFunction *gf, int vd,
-                             double &min, double &max)
+void MFEMSolution::updateMinMaxDof(const GridFunction *gf, int vd,
+                                   double &min, double &max)
 {
-   min = std::numeric_limits<double>::max();
-   max = std::numeric_limits<double>::lowest();
-
    const auto *fes = gf->FESpace();
    for (int dof = 0; dof < fes->GetNDofs(); dof++)
    {
@@ -92,11 +99,40 @@ void MFEMSolution::getMinMax(GridFunction *gf, int vd,
    }
 }
 
-
-MFEMSolution::~MFEMSolution()
+void MFEMSolution::getMinMaxNorm()
 {
-   delete mesh_;
-   delete solution_;
+   // calculate the approximate min/max of the solution and the domain
+   for (int i = 0; i < 4; i++)
+   {
+      min_[i] = std::numeric_limits<double>::max();
+      max_[i] = std::numeric_limits<double>::lowest();
+   }
+   for (unsigned rank = 0; rank < meshes_.size(); rank++)
+   {
+      const auto *nodes = meshes_[rank]->GetNodes();
+      for (int i = 0; i < nodes->FESpace()->GetVDim(); i++)
+      {
+         updateMinMaxDof(nodes, i, min_[i], max_[i]);
+      }
+      updateMinMaxDof(solutions_[rank].get(), 0, min_[3], max_[3]);
+   }
+   for (int i = 0; i < 4; i++)
+   {
+      if (min_[i] > max_[i]) { min_[i] = max_[i] = 0; }
+   }
+
+   // calculate normalization coefficients
+   double max_size = 0.;
+   for (int i = 0; i < 3; i++)
+   {
+      offset_[i] = -0.5*(min_[i] + max_[i]);
+      double size = max_[i] - min_[i];
+      max_size = std::max(size, max_size);
+   }
+   scale_[0] = scale_[1] = scale_[2] = 1.0 / max_size;
+
+   offset_[3] = -min_[3];
+   scale_[3] = 1.0 / (max_[3] - min_[3]);
 }
 
 
@@ -119,84 +155,117 @@ static void GetFaceDofs(const FiniteElementSpace *space,
 }
 
 
+MFEMSolution::~MFEMSolution()
+{
+   // needs to be defined here where Mesh and GridFunction are complete types
+}
+
+
 void MFEMSurfaceCoefs::extract(const Solution &solution)
 {
    const auto *msln = dynamic_cast<const MFEMSolution*>(&solution);
    MFEM_VERIFY(msln, "Not an MFEM solution!");
 
-   const Mesh *mesh = msln->mesh();
+   int numRanks = msln->numRanks();
 
-   const GridFunction *gf = msln->solution();
-   const GridFunction *nodes = msln->mesh()->GetNodes();
-
-   const auto *sln_space = gf->FESpace();
-   const auto *nodes_space = nodes->FESpace();
-
-   const auto *sln_fe = dynamic_cast<const H1_QuadrilateralElement*>(
-      sln_space->FEColl()->TraceFiniteElementForGeometry(Geometry::SQUARE));
-   const auto *nodes_fe = dynamic_cast<const H1_QuadrilateralElement*>(
-      nodes_space->FEColl()->TraceFiniteElementForGeometry(Geometry::SQUARE));
-
-   MFEM_VERIFY(sln_fe != NULL && nodes_fe != NULL,
-               "Only H1_QuadrilateralElement supported at the moment.");
-   MFEM_VERIFY(sln_fe->GetDof() == nodes_fe->GetDof(),
-               "Curvature currently must have the same space as the solution.");
-
-   int ndof = sln_fe->GetDof();
-
-   const Array<int> &dof_map = sln_fe->GetDofMap();
-
-   // count boundary faces
-   nf_ = 0;
-   for (int i = 0; i < mesh->GetNFaces(); i++)
+   // check the finite element types
+   const H1_QuadrilateralElement* fe;
+   for (int rank = 0; rank < numRanks; rank++)
    {
-      if (mesh->GetFace(i)->GetAttribute() > 0) { nf_++; }
+      const auto *slnSpace = msln->solution(rank)->FESpace();
+      const auto *nodesSpace = msln->mesh(rank)->GetNodes()->FESpace();
+
+      const auto *slnFE = dynamic_cast<const H1_QuadrilateralElement*>(
+         slnSpace->FEColl()->TraceFiniteElementForGeometry(Geometry::SQUARE));
+      const auto *nodesFE = dynamic_cast<const H1_QuadrilateralElement*>(
+         nodesSpace->FEColl()->TraceFiniteElementForGeometry(Geometry::SQUARE));
+
+      MFEM_VERIFY(slnFE != NULL && nodesFE != NULL,
+                  "Only H1_QuadrilateralElement supported at the moment.");
+      MFEM_VERIFY(slnFE->GetDof() == nodesFE->GetDof(),
+                  "Curvature currently must have the same space as the solution.");
+      fe = slnFE;
    }
 
-   Array<int> dofs, vdofs;
-   std::vector<float> face_coefs(4*nf_*ndof, 0.f);
-
-   // extract face coefs
-   nf_ = 0;
-   for (int i = 0; i < mesh->GetNFaces(); i++)
+   // count boundary faces
+   std::vector<int> faceOffset(numRanks+1, 0);
+   for (int rank = 0; rank < numRanks; rank++)
    {
-      if (mesh->FaceIsInterior(i)) { continue; }
-
-      float* coefs = &(face_coefs[4*(nf_++)*ndof]);
-
-      GetFaceDofs(sln_space, i, dofs);
-      MFEM_ASSERT(dofs.Size() == ndof, "");
-
-      dofs.Copy(vdofs);
-      sln_space->DofsToVDofs(0, vdofs);
-
-      for (int j = 0; j < ndof; j++)
+      int nf = 0;
+      const Mesh *mesh = msln->mesh(rank);
+      for (int i = 0; i < mesh->GetNFaces(); i++)
       {
-         double c = (*gf)(vdofs[dof_map[j]]);
-         coefs[4*j + 3] = (c + msln->normOffset(3))*msln->normScale(3);
+         if (!mesh->FaceIsInterior(i)) { nf++; }
       }
+      faceOffset[rank+1] = faceOffset[rank] + nf;
+   }
 
-      GetFaceDofs(nodes_space, i, dofs);
-      MFEM_ASSERT(dofs.Size() == ndof, "");
+   int numFaces = faceOffset[numRanks];
+   rank_.resize(numFaces);
 
-      for (int vd = 0; vd < nodes_space->GetVDim(); vd++)
+   // CPU instance of the coefficient buffer
+   int ndof = fe->GetDof();
+   std::vector<float> faceCoefs(4*numFaces*ndof, 0.f);
+
+   // extract coefficients
+   OMP(parallel for schedule(dynamic))
+   for (int rank = 0; rank < numRanks; rank++)
+   {
+      const Mesh *mesh = msln->mesh(rank);
+
+      const auto *slnSpace = msln->solution(rank)->FESpace();
+      const auto *nodesSpace = mesh->GetNodes()->FESpace();
+
+      const GridFunction *gf = msln->solution(rank);
+      const GridFunction *nodes = mesh->GetNodes();
+
+      Array<int> dofs, vdofs;
+      const Array<int> &dofMap = fe->GetDofMap();
+
+      // extract face coefs
+      for (int i = 0, nf = 0; i < mesh->GetNFaces(); i++)
       {
-         dofs.Copy(vdofs);
-         nodes_space->DofsToVDofs(vd, vdofs);
+         if (mesh->FaceIsInterior(i)) { continue; }
 
-         double min = msln->min(vd);
-         double scale = 1.0/(msln->max(vd) - min);
+         int fi = faceOffset[rank] + nf++;
+         rank_[fi] = rank;
+
+         float* coefs = &(faceCoefs[4*fi*ndof]);
+
+         GetFaceDofs(slnSpace, i, dofs);
+         MFEM_ASSERT(dofs.Size() == ndof, "");
+
+         dofs.Copy(vdofs);
+         slnSpace->DofsToVDofs(0, vdofs);
 
          for (int j = 0; j < ndof; j++)
          {
-            double c = (*nodes)(vdofs[dof_map[j]]);
-            coefs[4*j + vd] = (c + msln->normOffset(vd))*msln->normScale(vd);
+            double c = (*gf)(vdofs[dofMap[j]]);
+            coefs[4*j + 3] = (c + msln->normOffset(3))*msln->normScale(3);
+         }
+
+         GetFaceDofs(nodesSpace, i, dofs);
+         MFEM_ASSERT(dofs.Size() == ndof, "");
+
+         for (int vd = 0; vd < nodesSpace->GetVDim(); vd++)
+         {
+            dofs.Copy(vdofs);
+            nodesSpace->DofsToVDofs(vd, vdofs);
+
+            double min = msln->min(vd);
+            double scale = 1.0/(msln->max(vd) - min);
+
+            for (int j = 0; j < ndof; j++)
+            {
+               double c = (*nodes)(vdofs[dofMap[j]]);
+               coefs[4*j + vd] = (c + msln->normOffset(vd))*msln->normScale(vd);
+            }
          }
       }
    }
 
    // upload to a shader buffer
-   buffer_.upload(face_coefs.data(), face_coefs.size()*sizeof(float));
+   buffer_.upload(faceCoefs.data(), faceCoefs.size()*sizeof(float));
 }
 
 
@@ -205,10 +274,10 @@ void MFEMVolumeCoefs::extract(const Solution &solution)
    const auto *msln = dynamic_cast<const MFEMSolution*>(&solution);
    MFEM_VERIFY(msln, "Not an MFEM solution!");
 
-   const Mesh *mesh = msln->mesh();
+   const Mesh *mesh = msln->mesh(0);
 
-   const GridFunction *gf = msln->solution();
-   const GridFunction *nodes = msln->mesh()->GetNodes();
+   const GridFunction *gf = msln->solution(0);
+   const GridFunction *nodes = msln->mesh(0)->GetNodes();
 
    const auto *sln_space = gf->FESpace();
    const auto *nodes_space = nodes->FESpace();
@@ -223,21 +292,22 @@ void MFEMVolumeCoefs::extract(const Solution &solution)
    MFEM_VERIFY(sln_fe->GetDof() == nodes_fe->GetDof(),
                "Curvature currently must have the same space as the solution.");
 
-   ne_ = mesh->GetNE();
-
+   int ne = mesh->GetNE();
    int ndof = sln_fe->GetDof();
-   std::cout << "elem dofs: " << ndof << std::endl;
+
+   rank_.clear();
+   rank_.resize(ne);
 
    boxes_.clear();
-   boxes_.resize(ne_);
+   boxes_.resize(ne);
 
    Array<int> dofs, vdofs;
    const Array<int> &dof_map = sln_fe->GetDofMap();
 
-   std::vector<float> elem_coefs(4*ndof*ne_, 0.f);
+   std::vector<float> elem_coefs(4*ndof*ne, 0.f);
 
    // extract element coefficients
-   for (int i = 0; i < ne_; i++)
+   for (int i = 0; i < ne; i++)
    {
       float* coefs = &(elem_coefs[4*ndof*i]);
 
@@ -260,9 +330,6 @@ void MFEMVolumeCoefs::extract(const Solution &solution)
       {
          dofs.Copy(vdofs);
          nodes_space->DofsToVDofs(vd, vdofs);
-
-         double min = msln->min(vd);
-         double scale = 1.0/(msln->max(vd) - min);
 
          for (int j = 0; j < ndof; j++)
          {

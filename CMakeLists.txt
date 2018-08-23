@@ -31,6 +31,7 @@ find_package(GLM REQUIRED)
 #find_package(Eigen3 3.2 REQUIRED)
 #include_directories(${EIGEN3_INCLUDE_DIR})
 
+include_directories(${CMAKE_SOURCE_DIR})
 include_directories(${CMAKE_SOURCE_DIR}/src)
 include_directories(${CMAKE_BINARY_DIR}/src)
 include_directories(${MFEM_PATH})

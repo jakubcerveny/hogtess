@@ -76,7 +76,7 @@ void RenderWidget::updateSurfMesh()
    {
       surfaceCoefs.extract(solution);
    }
-   std::cout << "Tesselating surface (level " << tessLevel << ")." << std::endl;
+   std::cout << "Tesselation level " << tessLevel << std::endl;
    surfaceMesh.tesselate(surfaceCoefs, tessLevel);
 
    updateCutMesh();
@@ -104,10 +104,8 @@ void RenderWidget::updateCutMesh()
       {
          volumeCoefs.extract(solution);
       }
-      tic();
       updateClipPlane();
       cutPlaneMesh.compute(volumeCoefs, clipPlane, tessLevel);
-      std::cout << "total cut compute: " << toc() << std::endl;
    }
    else if (clipMode == 0)
    {

@@ -1,13 +1,16 @@
 #ifndef hogtess_input_mfem_hpp_included_
 #define hogtess_input_mfem_hpp_included_
 
+#include <vector>
 #include <string>
+#include <memory>
 
 #include "input.hpp"
 
 
-namespace mfem // forwards
+namespace mfem
 {
+// forwards
 class Mesh;
 class GridFunction;
 }
@@ -16,11 +19,19 @@ class GridFunction;
 class MFEMSolution : public Solution
 {
 public:
-   MFEMSolution(const std::string &meshPath,
-                const std::string &solutionPath);
+   MFEMSolution(const std::vector<std::string> &meshPaths,
+                const std::vector<std::string> &solutionPaths);
 
-   const mfem::Mesh *mesh() const { return mesh_; }
-   const mfem::GridFunction *solution() const { return solution_; }
+   const int numRanks() const { return meshes_.size(); }
+
+   const mfem::Mesh *mesh(int rank) const
+   {
+      return meshes_[rank].get();
+   }
+   const mfem::GridFunction *solution(int rank) const
+   {
+      return solutions_[rank].get();
+   }
 
    // normalization coefficients (0,1,2=domain, 3=solution)
    double normScale(int i) const { return scale_[i]; }
@@ -29,11 +40,14 @@ public:
    virtual ~MFEMSolution();
 
 protected:
-   mfem::Mesh *mesh_;
-   mfem::GridFunction *solution_;
+   std::vector<std::unique_ptr<mfem::Mesh>> meshes_;
+   std::vector<std::unique_ptr<mfem::GridFunction>> solutions_;
+
    double scale_[4], offset_[4];
 
-   void getMinMax(mfem::GridFunction *gf, int vd, double &min, double &max);
+   void getMinMaxNorm();
+   void updateMinMaxDof(const mfem::GridFunction *gf,
+                        int vd, double &min, double &max);
 };
 
 

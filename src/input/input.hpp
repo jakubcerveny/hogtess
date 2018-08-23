@@ -47,19 +47,21 @@ protected:
 class SurfaceCoefs
 {
 public:
-   SurfaceCoefs() : nf_(0), buffer_(GL_STATIC_DRAW) {}
+   SurfaceCoefs() : buffer_(GL_STATIC_DRAW) {}
 
    virtual void extract(const Solution &solution) = 0;
 
-   int numFaces() const { return nf_; }
-
    const Buffer& buffer() const { return buffer_; }
+
+   int numFaces() const { return rank_.size(); }
+
+   int faceRank(int i) const { return rank_[i]; }
 
    virtual ~SurfaceCoefs() {}
 
 protected:
-   int nf_;
    Buffer buffer_;
+   std::vector<int> rank_;
 };
 
 
@@ -94,13 +96,15 @@ struct BBox
 class VolumeCoefs
 {
 public:
-   VolumeCoefs() : ne_(0), buffer_(GL_STATIC_DRAW) {}
+   VolumeCoefs() : buffer_(GL_STATIC_DRAW) {}
 
    virtual void extract(const Solution &solution) = 0;
 
-   int numElements() const { return ne_; }
-
    const Buffer& buffer() const { return buffer_; }
+
+   int numElements() const { return rank_.size(); }
+
+   int elementRank(int i) const { return rank_[i]; }
 
    /// Return approximate element bounding box (for speeding up mesh cutting)
    const BBox<float>& boundingBox(int i) const { return boxes_[i]; }
@@ -108,8 +112,8 @@ public:
    virtual ~VolumeCoefs() {}
 
 protected:
-   int ne_;
    Buffer buffer_;
+   std::vector<int> rank_;
    std::vector<BBox<float> > boxes_;
 };
 

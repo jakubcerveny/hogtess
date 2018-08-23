@@ -1,5 +1,6 @@
 
 set(hogtess_SOURCES
+    ../3rdparty/argagg.hpp
     cutplane/cutmesh.cpp
     cutplane/cutmesh.hpp
     input/input.hpp

@@ -1,5 +1,10 @@
 #include <vector>
 #include <chrono>
+#include <memory>
+
+#include <cstring>
+#include <cstdlib>
+#include <cstdarg>
 
 #include "utility.hpp"
 
@@ -27,3 +32,28 @@ double toc()
    return diff.count();
 }
 
+
+std::string format_str(const char* fmt, ...)
+{
+   // reserve two times as much as the length of the fmt
+   int n = 2*std::strlen(fmt);
+   std::unique_ptr<char> formatted;
+
+   va_list ap;
+   while (1)
+   {
+      formatted.reset(new char[n]);
+
+      va_start(ap, fmt);
+      int final_n = vsnprintf(formatted.get(), n, fmt, ap);
+      va_end(ap);
+
+      if (final_n < 0 || final_n >= n) {
+         n += std::abs(final_n - n + 1);
+      }
+      else {
+         break;
+      }
+   }
+   return std::string(formatted.get());
+}
