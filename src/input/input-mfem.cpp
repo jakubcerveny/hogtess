@@ -136,25 +136,6 @@ void MFEMSolution::getMinMaxNorm()
 }
 
 
-static void GetFaceDofs(const FiniteElementSpace *space,
-                        int face, Array<int> &dofs)
-{
-   if (space->GetNFDofs()) // H1 space: face DOFs exist
-   {
-      space->GetFaceDofs(face, dofs);
-   }
-   else // L2 space
-   {
-      Mesh* mesh = space->GetMesh();
-      int e1, e2, inf1, inf2;
-      mesh->GetFaceElements(face, &e1, &e2);
-      mesh->GetFaceInfos(face, &inf1, &inf2);
-
-      MFEM_ABORT("TODO");
-   }
-}
-
-
 MFEMSolution::~MFEMSolution()
 {
    // needs to be defined here where Mesh and GridFunction are complete types
@@ -191,13 +172,8 @@ void MFEMSurfaceCoefs::extract(const Solution &solution)
    std::vector<int> faceOffset(numRanks+1, 0);
    for (int rank = 0; rank < numRanks; rank++)
    {
-      int nf = 0;
       const Mesh *mesh = msln->mesh(rank);
-      for (int i = 0; i < mesh->GetNFaces(); i++)
-      {
-         if (!mesh->FaceIsInterior(i)) { nf++; }
-      }
-      faceOffset[rank+1] = faceOffset[rank] + nf;
+      faceOffset[rank+1] = faceOffset[rank] + mesh->GetNBE();
    }
 
    int numFaces = faceOffset[numRanks];
@@ -223,16 +199,14 @@ void MFEMSurfaceCoefs::extract(const Solution &solution)
       const Array<int> &dofMap = fe->GetDofMap();
 
       // extract face coefs
-      for (int i = 0, nf = 0; i < mesh->GetNFaces(); i++)
+      for (int i = 0, nf = 0; i < mesh->GetNBE(); i++)
       {
-         if (mesh->FaceIsInterior(i)) { continue; }
-
-         int fi = faceOffset[rank] + nf++;
+         int fi = faceOffset[rank] + i;
          rank_[fi] = rank;
 
          float* coefs = &(faceCoefs[4*fi*ndof]);
 
-         GetFaceDofs(slnSpace, i, dofs);
+         slnSpace->GetBdrElementDofs(i, dofs);
          MFEM_ASSERT(dofs.Size() == ndof, "");
 
          dofs.Copy(vdofs);
@@ -244,7 +218,7 @@ void MFEMSurfaceCoefs::extract(const Solution &solution)
             coefs[4*j + 3] = (c + msln->normOffset(3))*msln->normScale(3);
          }
 
-         GetFaceDofs(nodesSpace, i, dofs);
+         nodesSpace->GetBdrElementDofs(i, dofs);
          MFEM_ASSERT(dofs.Size() == ndof, "");
 
          for (int vd = 0; vd < nodesSpace->GetVDim(); vd++)

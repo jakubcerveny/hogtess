@@ -1,8 +1,6 @@
 TODO:
 
-- fix internal faces
 - per pixel solution evaluation
-- parallel solutions
 - discontinuous solutions
 - vector solutions (drawing magnitude, x, y, z)
 - isosurface
@@ -11,6 +9,8 @@ TODO:
 
 DONE: 
 
+- fix internal faces
+- parallel solutions
 - bounding boxes to speed up cutting
 - fix Z fighting between mesh triangles and lines
 - better buffer management

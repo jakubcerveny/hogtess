@@ -24,10 +24,13 @@ int main(int argc, char *argv[])
    {{
       { "help", {"-h", "--help"},
          "Shows this help message.", 0},
+
       { "mesh", {"-m", "--mesh"},
          "Mesh file to visualize.", 1},
+
       { "gf", {"-g", "--grid-function"},
          "Solution (GridFunction) file to visualize.", 1},
+
       { "np", {"-n", "--num-proc"},
          "Load mesh/solution from multiple processors.", 1}
    }};
