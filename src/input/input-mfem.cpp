@@ -13,15 +13,15 @@ MFEMSolution::MFEMSolution(const std::vector<std::string> &meshPaths,
 {
    MFEM_VERIFY(meshPaths.size() == solutionPaths.size(), "");
 
-   int numRanks = meshPaths.size();
-   meshes_.resize(numRanks);
-   solutions_.resize(numRanks);
+   numRanks_ = meshPaths.size();
+   meshes_.resize(numRanks_);
+   solutions_.resize(numRanks_);
 
    order_ = -1;
 
    // load mesh & solution for each rank
    OMP(parallel for schedule(dynamic))
-   for (int rank = 0; rank < numRanks; rank++)
+   for (int rank = 0; rank < numRanks_; rank++)
    {
       std::cout << "Loading " << meshPaths[rank] << std::endl;
       mfem::Mesh *mesh = new Mesh(meshPaths[rank].c_str());
@@ -78,8 +78,9 @@ MFEMSolution::MFEMSolution(const std::vector<std::string> &meshPaths,
 
    std::cout << "Polynomial order: " << order_ << std::endl;
 
-   // calculate min/max and normalization
+   // calculate min/max, normalization and centers
    getMinMaxNorm();
+   getCenters();
 
    // nodal points
    nodes1d_ = mfem::poly1d.ClosedPoints
@@ -87,8 +88,8 @@ MFEMSolution::MFEMSolution(const std::vector<std::string> &meshPaths,
 }
 
 
-void MFEMSolution::updateMinMax(const GridFunction *gf, int vd,
-                                double &min, double &max)
+static void updateMinMax(const GridFunction *gf, int vd,
+                         double &min, double &max)
 {
    const auto *fes = gf->FESpace();
    for (int dof = 0; dof < fes->GetNDofs(); dof++)
@@ -107,7 +108,7 @@ void MFEMSolution::getMinMaxNorm()
       min_[i] = std::numeric_limits<double>::max();
       max_[i] = std::numeric_limits<double>::lowest();
    }
-   for (unsigned rank = 0; rank < meshes_.size(); rank++)
+   for (unsigned rank = 0; rank < numRanks_; rank++)
    {
       const auto *nodes = meshes_[rank]->GetNodes();
       for (int i = 0; i < nodes->FESpace()->GetVDim(); i++)
@@ -136,6 +137,32 @@ void MFEMSolution::getMinMaxNorm()
 }
 
 
+void MFEMSolution::getCenters()
+{
+   centers_.clear();
+   centers_.resize(3*numRanks_, 0.0);
+
+   for (unsigned rank = 0; rank < numRanks_; rank++)
+   {
+      const auto *nodes = meshes_[rank]->GetNodes();
+      const auto *fes = nodes->FESpace();
+
+      for (int vd = 0; vd < fes->GetVDim(); vd++)
+      {
+         for (int dof = 0; dof < fes->GetNDofs(); dof++)
+         {
+            double x = (*nodes)(fes->DofToVDof(dof, vd));
+            centers_[3*rank + vd] += x*scale_[vd] + offset_[vd];
+         }
+      }
+      for (int vd = 0; vd < 3; vd++)
+      {
+         centers_[3*rank + vd] /= fes->GetNDofs();
+      }
+   }
+}
+
+
 MFEMSolution::~MFEMSolution()
 {
    // needs to be defined here where Mesh and GridFunction are complete types
@@ -144,10 +171,10 @@ MFEMSolution::~MFEMSolution()
 
 void MFEMSurfaceCoefs::extract(const Solution &solution)
 {
+   int numRanks = solution.numRanks();
+
    const auto *msln = dynamic_cast<const MFEMSolution*>(&solution);
    MFEM_VERIFY(msln, "Not an MFEM solution!");
-
-   int numRanks = msln->numRanks();
 
    // check the finite element types
    const H1_QuadrilateralElement* fe;
@@ -167,6 +194,7 @@ void MFEMSurfaceCoefs::extract(const Solution &solution)
                   "Curvature currently must have the same space as the solution.");
       fe = slnFE;
    }
+   int ndof = fe->GetDof();
 
    // count boundary faces
    std::vector<int> faceOffset(numRanks+1, 0);
@@ -175,13 +203,11 @@ void MFEMSurfaceCoefs::extract(const Solution &solution)
       const Mesh *mesh = msln->mesh(rank);
       faceOffset[rank+1] = faceOffset[rank] + mesh->GetNBE();
    }
+   nf_ = faceOffset[numRanks];
 
-   int numFaces = faceOffset[numRanks];
-   rank_.resize(numFaces);
-
-   // CPU instance of the coefficient buffer
-   int ndof = fe->GetDof();
-   std::vector<float> faceCoefs(4*numFaces*ndof, 0.f);
+   // CPU instances of the buffers
+   std::vector<float> faceCoefs(4*nf_*ndof, 0.f);
+   std::vector<int> ranks(nf_, 0);
 
    // extract coefficients
    OMP(parallel for schedule(dynamic))
@@ -202,7 +228,7 @@ void MFEMSurfaceCoefs::extract(const Solution &solution)
       for (int i = 0, nf = 0; i < mesh->GetNBE(); i++)
       {
          int fi = faceOffset[rank] + i;
-         rank_[fi] = rank;
+         ranks[fi] = rank;
 
          float* coefs = &(faceCoefs[4*fi*ndof]);
 
@@ -238,17 +264,18 @@ void MFEMSurfaceCoefs::extract(const Solution &solution)
       }
    }
 
-   // upload to a shader buffer
-   buffer_.upload(faceCoefs.data(), faceCoefs.size()*sizeof(float));
+   // upload to shader buffers
+   buffer_.upload(faceCoefs);
+   ranks_.upload(ranks);
 }
 
 
 void MFEMVolumeCoefs::extract(const Solution &solution)
 {
+   int numRanks = solution.numRanks();
+
    const auto *msln = dynamic_cast<const MFEMSolution*>(&solution);
    MFEM_VERIFY(msln, "Not an MFEM solution!");
-
-   int numRanks = msln->numRanks();
 
    // check the finite element types
    const H1_HexahedronElement* fe;
@@ -268,6 +295,7 @@ void MFEMVolumeCoefs::extract(const Solution &solution)
                   "Curvature currently must have the same space as the solution.");
       fe = slnFE;
    }
+   int ndof = fe->GetDof();
 
    // count elements
    std::vector<int> elemOffset(numRanks+1, 0);
@@ -276,16 +304,14 @@ void MFEMVolumeCoefs::extract(const Solution &solution)
       const Mesh *mesh = msln->mesh(rank);
       elemOffset[rank+1] = elemOffset[rank] + mesh->GetNE();
    }
+   ne_ = elemOffset[numRanks];
 
-   int numElems = elemOffset[numRanks];
-   rank_.resize(numElems);
+   // CPU instances of the buffers
+   std::vector<float> elemCoefs(4*ne_*ndof, 0.f);
+   std::vector<int> ranks(ne_, 0);
 
    boxes_.clear();
-   boxes_.resize(numElems);
-
-   // CPU instance of the coefficient buffer
-   int ndof = fe->GetDof();
-   std::vector<float> elemCoefs(4*numElems*ndof, 0.f);
+   boxes_.resize(ne_);
 
    // extract coefficients
    OMP(parallel for schedule(dynamic))
@@ -306,7 +332,7 @@ void MFEMVolumeCoefs::extract(const Solution &solution)
       for (int i = 0; i < mesh->GetNE(); i++)
       {
          int ei = elemOffset[rank] + i;
-         rank_[ei] = rank;
+         ranks[ei] = rank;
 
          float* coefs = &(elemCoefs[4*ei*ndof]);
 
@@ -341,7 +367,8 @@ void MFEMVolumeCoefs::extract(const Solution &solution)
       }
    }
 
-   // upload to a shader buffer
-   buffer_.upload(elemCoefs.data(), elemCoefs.size()*sizeof(float));
+   // upload to shader buffers
+   buffer_.upload(elemCoefs);
+   ranks_.upload(ranks);
 }
 

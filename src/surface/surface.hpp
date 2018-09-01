@@ -16,8 +16,9 @@
 class SurfaceMesh
 {
 public:
-   SurfaceMesh(const Solution &solution)
-      : solution(solution)
+   SurfaceMesh(const Solution &solution,
+               const SurfaceCoefs &coefs)
+      : solution(solution), coefs(coefs)
       , numFaces(0), tessLevel(0), vao(0)
    {}
 
@@ -26,13 +27,16 @@ public:
 
    /** Tesselate the surface. The specified subdivision level should be a
        multiple of 2. This function may only be called when 'level' changes. */
-   void tesselate(const SurfaceCoefs &coefs, int level);
+   void tesselate(int level);
 
    /// Draw the tesselated faces. Can be called many times.
-   void draw(const glm::mat4 &mvp, const glm::vec4 &clipPlane, bool lines);
+   void draw(const glm::mat4 &mvp, const glm::vec4 &clipPlane,
+             const Buffer &bufPartMat, bool lines);
 
 protected:
    const Solution &solution;
+   const SurfaceCoefs &coefs;
+
    int numFaces, tessLevel;
 
    Program progCompute, progDraw, progLines;

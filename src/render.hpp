@@ -42,6 +42,7 @@ protected:
    void updateSurfMesh();
    void updateClipPlane();
    void updateCutMesh();
+   void updatePartMatrices();
 
    virtual void initializeGL();
    virtual void resizeGL(int width, int height);
@@ -65,6 +66,9 @@ protected:
 
    int clipMode, clipX, clipY, clipZ;
    glm::vec4 clipPlane;
+
+   int explode;
+   Buffer bufPartMat;
 };
 
 

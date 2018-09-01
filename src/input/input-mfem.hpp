@@ -22,8 +22,6 @@ public:
    MFEMSolution(const std::vector<std::string> &meshPaths,
                 const std::vector<std::string> &solutionPaths);
 
-   const int numRanks() const { return meshes_.size(); }
-
    const mfem::Mesh *mesh(int rank) const
    {
       return meshes_[rank].get();
@@ -46,8 +44,7 @@ protected:
    double scale_[4], offset_[4];
 
    void getMinMaxNorm();
-   void updateMinMax(const mfem::GridFunction *gf,
-                     int vd, double &min, double &max);
+   void getCenters();
 };
 
 

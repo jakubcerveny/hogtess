@@ -24,8 +24,8 @@ RenderWidget::RenderWidget(const QGLFormat &format,
    , surfaceCoefs(surfaceCoefs)
    , volumeCoefs(volumeCoefs)
 
-   , surfaceMesh(solution)
-   , cutPlaneMesh(solution)
+   , surfaceMesh(solution, surfaceCoefs)
+   , cutPlaneMesh(solution, volumeCoefs)
 
    , rotateX(0.), rotateY(0.)
    , zoom(0.)
@@ -38,6 +38,8 @@ RenderWidget::RenderWidget(const QGLFormat &format,
    , clipMode(0)
    , clipX(0), clipY(0), clipZ(0)
    , clipPlane(1, 0, 0, 0)
+
+   , explode(0)
 {
    grabKeyboard();
 }
@@ -67,6 +69,7 @@ void RenderWidget::initializeGL()
    glEnable(GL_MULTISAMPLE);
 
    updateSurfMesh();
+   updatePartMatrices();
 }
 
 
@@ -77,7 +80,7 @@ void RenderWidget::updateSurfMesh()
       surfaceCoefs.extract(solution);
    }
    std::cout << "Tesselation level " << tessLevel << std::endl;
-   surfaceMesh.tesselate(surfaceCoefs, tessLevel);
+   surfaceMesh.tesselate(tessLevel);
 
    updateCutMesh();
 }
@@ -105,12 +108,30 @@ void RenderWidget::updateCutMesh()
          volumeCoefs.extract(solution);
       }
       updateClipPlane();
-      cutPlaneMesh.compute(volumeCoefs, clipPlane, tessLevel);
+      cutPlaneMesh.compute(clipPlane, bufPartMat, tessLevel);
    }
    else if (clipMode == 0)
    {
       cutPlaneMesh.free();
    }
+}
+
+
+void RenderWidget::updatePartMatrices()
+{
+   double scale = std::pow(0.93, explode);
+
+   std::vector<glm::mat4> matrices(solution.numRanks());
+   for (int rank = 0; rank < matrices.size(); rank++)
+   {
+      const double *center = solution.partCenter(rank);
+      glm::dmat4 mat(1.0);
+      mat = glm::translate(mat, glm::dvec3(center[0], center[1], center[2]));
+      mat = glm::scale(mat, glm::dvec3(scale, scale, scale));
+      mat = glm::translate(mat, glm::dvec3(-center[0], -center[1], -center[2]));
+      matrices[rank] = mat;
+   }
+   bufPartMat.upload(matrices);
 }
 
 
@@ -151,7 +172,7 @@ void RenderWidget::paintGL()
    else {
       glDisable(GL_CLIP_DISTANCE0);
    }
-   surfaceMesh.draw(mvp, clipPlane, lines);
+   surfaceMesh.draw(mvp, clipPlane, bufPartMat, lines);
 
    // draw cut plane
    glDisable(GL_CLIP_DISTANCE0);
@@ -258,6 +279,13 @@ void RenderWidget::keyPressEvent(QKeyEvent * event)
 
       case Qt::Key_W:
          wireframe = !wireframe;
+         break;
+
+      case Qt::Key_F11:
+         if (dir < 0 && !explode) { break; }
+         explode += dir;
+         updatePartMatrices();
+         updateCutMesh();
          break;
    }
    updateGL();

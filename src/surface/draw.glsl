@@ -18,10 +18,20 @@ layout(std430, binding = 1) buffer bufIndices
    int indices[];
 };
 
+layout(std430, binding = 2) buffer bufRanks
+{
+   int faceRank[];
+};
+
+layout(std430, binding = 3) buffer bufPartMat
+{
+   mat4 matrices[];
+};
+
 void main()
 {
    vec4 vert = vertices[indices[gl_VertexID] + gl_InstanceID*nFaceVert];
-   vec4 pos = vec4(vert.xyz, 1);
+   vec4 pos = matrices[faceRank[gl_InstanceID]] * vec4(vert.xyz, 1);
    gl_Position = mvp * pos;
    solution = vert.w;
    gl_ClipDistance[0] = -dot(pos, clipPlane);

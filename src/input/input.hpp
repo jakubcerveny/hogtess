@@ -11,12 +11,15 @@
  *  hogtess does not work with the solution directly -- it only passes it to
  *  SurfaceCoefs and VolumeCoefs to extract the higher order coefficients in
  *  the format it needs. The solution itself is opaque to hogtess (except for
- *  some basic information such as order()).
+ *  some basic information such as numRanks() or order()).
  */
 class Solution
 {
 public:
    virtual ~Solution() {}
+
+   /// Return the number of parts of a parallel solution.
+   int numRanks() const { return numRanks_; }
 
    /// Return the polynomial degree of the FE function.
    int order() const { return order_; }
@@ -29,10 +32,17 @@ public:
    double min(int i) const { return min_[i]; }
    double max(int i) const { return max_[i]; }
 
+   /// Return approximate center of mass of a parallel part (as double[3]).
+   const double* partCenter(int rank) const
+   {
+      return &(centers_[3*rank]);
+   }
+
 protected:
-   int order_;
+   int numRanks_, order_;
    const double *nodes1d_;
    double min_[4], max_[4];
+   std::vector<double> centers_;
 };
 
 
@@ -47,21 +57,22 @@ protected:
 class SurfaceCoefs
 {
 public:
-   SurfaceCoefs() : buffer_(GL_STATIC_DRAW) {}
+   SurfaceCoefs() : nf_(0), buffer_(GL_STATIC_DRAW), ranks_(GL_STATIC_DRAW) {}
 
    virtual void extract(const Solution &solution) = 0;
 
+   int numFaces() const { return nf_; }
+
    const Buffer& buffer() const { return buffer_; }
 
-   int numFaces() const { return rank_.size(); }
-
-   int faceRank(int i) const { return rank_[i]; }
+   /// Return buffer containing face ranks (format int[numFaces]).
+   const Buffer& faceRanks() const { return ranks_; }
 
    virtual ~SurfaceCoefs() {}
 
 protected:
-   Buffer buffer_;
-   std::vector<int> rank_;
+   int nf_;
+   Buffer buffer_, ranks_;
 };
 
 
@@ -96,15 +107,16 @@ struct BBox
 class VolumeCoefs
 {
 public:
-   VolumeCoefs() : buffer_(GL_STATIC_DRAW) {}
+   VolumeCoefs() : ne_(0), buffer_(GL_STATIC_DRAW), ranks_(GL_STATIC_DRAW) {}
 
    virtual void extract(const Solution &solution) = 0;
 
+   int numElements() const { return ne_; }
+
    const Buffer& buffer() const { return buffer_; }
 
-   int numElements() const { return rank_.size(); }
-
-   int elementRank(int i) const { return rank_[i]; }
+   /// Return buffer containing element ranks (format int[numElements]).
+   const Buffer& elemRanks() const { return ranks_; }
 
    /// Return approximate element bounding box (for speeding up mesh cutting)
    const BBox<float>& boundingBox(int i) const { return boxes_[i]; }
@@ -112,9 +124,9 @@ public:
    virtual ~VolumeCoefs() {}
 
 protected:
-   Buffer buffer_;
-   std::vector<int> rank_;
-   std::vector<BBox<float> > boxes_;
+   int ne_;
+   Buffer buffer_, ranks_;
+   std::vector<BBox<float>> boxes_;
 };
 
 

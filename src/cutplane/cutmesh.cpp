@@ -84,8 +84,9 @@ bool boxCut(const BBox<float> &box, const glm::vec4 clipPlane, float eps = 1e-3)
 }
 
 
-void CutPlaneMesh::compute(const VolumeCoefs &coefs,
-                           const glm::vec4 &clipPlane, int level)
+void CutPlaneMesh::compute(const glm::vec4 &clipPlane,
+                           const Buffer &bufPartMat,
+                           int level)
 {
    const long MB = 1024*1024;
 
@@ -97,6 +98,7 @@ void CutPlaneMesh::compute(const VolumeCoefs &coefs,
    std::vector<int> elemIndices;
    for (int i = 0; i < coefs.numElements(); i++)
    {
+      // TODO: transform boxes with CPU version of bufPartMat
       if (boxCut(coefs.boundingBox(i), clipPlane))
       {
          elemIndices.push_back(i);
@@ -104,7 +106,7 @@ void CutPlaneMesh::compute(const VolumeCoefs &coefs,
    }
    int numElems = elemIndices.size();
 
-   bufElemIndices.upload(elemIndices.data(), numElems*sizeof(int));
+   bufElemIndices.upload(elemIndices);
 
 
    // STEP 2: compute the vertices of a 3D subdivision of selected elements
@@ -131,6 +133,8 @@ void CutPlaneMesh::compute(const VolumeCoefs &coefs,
    coefs.buffer().bind(0);
    bufElemIndices.bind(1);
    bufVertices.bind(2);
+   coefs.elemRanks().bind(3);
+   bufPartMat.bind(4);
 
    // launch the compute shader
    int groupsX = divRoundUp((level+1)*numElems, lsize[0]);

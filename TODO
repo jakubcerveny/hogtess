@@ -1,5 +1,8 @@
 TODO:
 
+- partition separation (F11 key)
+- lighting
+- palettes
 - per pixel solution evaluation
 - discontinuous solutions
 - vector solutions (drawing magnitude, x, y, z)

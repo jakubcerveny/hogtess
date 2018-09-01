@@ -19,6 +19,17 @@ layout(std430, binding = 2) buffer bufVertices
    vec4 vertices[];
 };
 
+layout(std430, binding = 3) buffer bufRanks
+{
+   int elemRank[];
+};
+
+layout(std430, binding = 4) buffer bufPartMat
+{
+   mat4 matrices[];
+};
+
+
 uniform int level;
 uniform float invLevel;
 uniform int numElems;
@@ -54,6 +65,9 @@ void main()
        vec4 coef = coefs[coefBase + (P+1)*((P+1)*i + j) + k];
        value += coef*ushape[i]*vshape[j]*wshape[k];
    }
+
+   vec4 pos = matrices[elemRank[elemIndices[elemIdx]]] * vec4(value.xyz, 1);
+   value.xyz = pos.xyz;
 
    vertices[elemIdx*elemVert + (level+1)*((level+1)*tessZ + tessY) + tessX] = value;
 }

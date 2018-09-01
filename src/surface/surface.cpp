@@ -40,7 +40,7 @@ void SurfaceMesh::initializeGL(int order)
 }
 
 
-void SurfaceMesh::tesselate(const SurfaceCoefs &coefs, int level)
+void SurfaceMesh::tesselate(int level)
 {
    numFaces = coefs.numFaces();
    tessLevel = level;
@@ -131,7 +131,7 @@ void SurfaceMesh::makeQuadFaceIndexBuffers(int level)
 
 
 void SurfaceMesh::draw(const glm::mat4 &mvp, const glm::vec4 &clipPlane,
-                       bool lines)
+                       const Buffer &bufPartMat, bool lines)
 {
    int nFaceVert = sqr(tessLevel + 1);
    int nFaceTri = 2*sqr(tessLevel);
@@ -146,6 +146,8 @@ void SurfaceMesh::draw(const glm::mat4 &mvp, const glm::vec4 &clipPlane,
 
    bufVertices.bind(0);
    bufIndices.bind(1);
+   coefs.faceRanks().bind(2);
+   bufPartMat.bind(3);
 
    glEnable(GL_POLYGON_OFFSET_FILL);
    glPolygonOffset(1, 1); // push triangles behind lines
@@ -165,6 +167,8 @@ void SurfaceMesh::draw(const glm::mat4 &mvp, const glm::vec4 &clipPlane,
 
       bufVertices.bind(0);
       bufLineIndices.bind(1);
+      coefs.faceRanks().bind(2);
+      bufPartMat.bind(3);
 
       glBindVertexArray(vao);
       glDrawArraysInstanced(GL_LINES, 0, 2*nFaceLines, numFaces);

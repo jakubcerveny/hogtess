@@ -2,6 +2,7 @@
 #define hogtess_buffer_hpp_included_
 
 //#include <iostream>
+#include <vector>
 
 #include <GL/gl.h>
 
@@ -46,6 +47,12 @@ public:
          resize(offset + size);
       }
       glBufferSubData(target, offset, size, data);
+   }
+
+   template<typename T>
+   void upload(const std::vector<T> &data, long offset = 0)
+   {
+      upload(data.data(), data.size()*sizeof(T), offset);
    }
 
    void download(void* data, long size, long offset = 0) const
