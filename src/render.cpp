@@ -131,7 +131,9 @@ void RenderWidget::updatePartMatrices()
       mat = glm::translate(mat, glm::dvec3(-center[0], -center[1], -center[2]));
       matrices[rank] = mat;
    }
+
    bufPartMat.upload(matrices);
+   bufPartMat.copy(matrices);
 }
 
 

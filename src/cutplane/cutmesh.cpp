@@ -53,7 +53,8 @@ void CutPlaneMesh::initializeGL(int order)
 }
 
 
-bool boxCut(const BBox<float> &box, const glm::vec4 clipPlane, float eps = 1e-3)
+bool boxCut(const BBox<float> &box, const glm::vec4 clipPlane,
+            const glm::mat4 &mat, float eps = 1e-3)
 {
    float corners[8][3] =
    {
@@ -70,9 +71,9 @@ bool boxCut(const BBox<float> &box, const glm::vec4 clipPlane, float eps = 1e-3)
    int pos = 0, neg = 0;
    for (int i = 0; i < 8; i++)
    {
-      float d = corners[i][0] * clipPlane.x +
-                corners[i][1] * clipPlane.y +
-                corners[i][2] * clipPlane.z + clipPlane.w;
+      glm::vec4 corner(corners[i][0], corners[i][1], corners[i][2], 1);
+
+      float d = dot(mat*corner, clipPlane);
 
       if (d > -eps) { pos++; }
       if (d < eps) { neg++; }
@@ -98,8 +99,12 @@ void CutPlaneMesh::compute(const glm::vec4 &clipPlane,
    std::vector<int> elemIndices;
    for (int i = 0; i < coefs.numElements(); i++)
    {
-      // TODO: transform boxes with CPU version of bufPartMat
-      if (boxCut(coefs.boundingBox(i), clipPlane))
+      // get transform for element i
+      int rank = coefs.elemRanks().data<int>(i);
+      const glm::mat4 &mat = bufPartMat.data<glm::mat4>(rank);
+
+      // check intersection with cutting plane
+      if (boxCut(coefs.boundingBox(i), clipPlane, mat))
       {
          elemIndices.push_back(i);
       }

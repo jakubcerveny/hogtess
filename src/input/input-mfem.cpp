@@ -370,5 +370,6 @@ void MFEMVolumeCoefs::extract(const Solution &solution)
    // upload to shader buffers
    buffer_.upload(elemCoefs);
    ranks_.upload(ranks);
+   ranks_.copy(ranks);
 }
 
