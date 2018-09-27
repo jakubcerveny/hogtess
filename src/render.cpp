@@ -198,17 +198,37 @@ void RenderWidget::mouseMoveEvent(QMouseEvent *event)
 
     bool leftButton();
     bool rightButton(event->buttons() & Qt::RightButton);
+    bool clip(clipMode == 1 && (event->modifiers() & Qt::ShiftModifier));
 
     if (event->buttons() & Qt::LeftButton)
     {
-       const double speed = 0.75;
-       rotateX += speed * deltaY;
-       rotateY += speed * deltaX;
+       if (!clip)
+       {
+          const double speed = 0.75;
+          rotateX += speed * deltaY;
+          rotateY += speed * deltaX;
+       }
+       else
+       {
+          const double speed = 0.2;
+          clipX += speed * deltaY;
+          clipY += speed * deltaX;
+          updateCutMesh();
+       }
     }
     else if (event->buttons() & Qt::RightButton)
     {
-       const double speed = 0.01;
-       zoom -= speed * deltaY;
+       if (!clip)
+       {
+          const double speed = 0.01;
+          zoom -= speed * deltaY;
+       }
+       else
+       {
+          const double speed = 0.15;
+          clipZ -= speed * deltaY;
+          updateCutMesh();
+       }
     }
     else if (event->buttons() & Qt::MiddleButton)
     {
