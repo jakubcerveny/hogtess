@@ -26,9 +26,10 @@ MFEMSolution::MFEMSolution(const std::vector<std::string> &meshPaths,
       std::cout << "Loading " << meshPaths[rank] << std::endl;
       mfem::Mesh *mesh = new Mesh(meshPaths[rank].c_str());
 
-      int geom = Geometry::CUBE;
+      Geometry::Type geom = Geometry::CUBE;
       MFEM_VERIFY(mesh->Dimension() == 3 &&
-                  mesh->GetElementBaseGeometry() == geom,
+                  mesh->GetNumGeometries(mesh->Dimension()) == 1 &&
+                  mesh->GetElementBaseGeometry(0) == geom,
                   "Only 3D hexes supported so far, sorry.");
 
       std::cout << "Loading " << solutionPaths[rank] << std::endl;

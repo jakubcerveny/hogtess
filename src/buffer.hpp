@@ -2,6 +2,7 @@
 #define hogtess_buffer_hpp_included_
 
 //#include <iostream>
+#include <cstring>
 #include <vector>
 
 #include <GL/gl.h>
