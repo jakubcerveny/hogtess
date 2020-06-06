@@ -13,8 +13,6 @@
 
 #include "tables.hpp"
 
-#define SSBO GL_SHADER_STORAGE_BUFFER
-
 
 void CutPlaneMesh::initializeGL(int order)
 {

@@ -15,6 +15,11 @@ if(EXISTS /usr/bin/qmake-qt4)
   set(QT_QMAKE_EXECUTABLE /usr/bin/qmake-qt4)
 endif()
 
+if (POLICY CMP0072)
+  # prefer libGL to libOpenGL (Ubuntu 20.04)
+  cmake_policy (SET CMP0072 OLD)
+endif(POLICY CMP0072)
+
 # use Qt4 support
 find_package(Qt4 REQUIRED)
 set(QT_USE_QTOPENGL TRUE)

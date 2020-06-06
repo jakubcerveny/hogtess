@@ -21,7 +21,7 @@ $ mkdir build; cd build
 $ cmake ..
 $ make
 $ cd ..
-$ ./build/hogtess data/beam.2.mesh data/beam.2.sln
+$ ./build/hogtess -m data/beam.2.mesh -g data/beam.2.sln
 ```
 
 ### Troubleshooting
